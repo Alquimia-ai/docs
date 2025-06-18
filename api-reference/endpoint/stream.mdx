@@ -1,0 +1,181 @@
+---
+title: 'Stream Assistant Response'
+openapi: 'GET /stream/{stream_id}'
+---
+
+Stream real-time processing chunks from an AI assistant using Server-Sent Events (SSE).
+
+## Overview
+
+The streaming endpoint allows you to receive real-time updates as the AI assistant processes your request. This is useful for displaying responses as they are generated, providing a more interactive user experience.
+
+## Usage
+
+After making a request to `POST /infer/chat/{assistant_id}`, you'll receive a `stream_id` in the response. Use this `stream_id` to connect to the streaming endpoint:
+
+```
+GET /stream/{stream_id}
+```
+
+## Server-Sent Events (SSE)
+
+This endpoint uses Server-Sent Events to stream data in real-time. Each event contains a JSON object with the current state of the assistant's processing.
+
+### Example SSE Response
+
+```json
+{
+    "stream_id": "4aacb75d5d2a453ebf5dfbd65f61ef3b",
+    "response": {
+        "event_class": "AssistantInferenceResponse",
+        "control_id": "540fd45072094fe998429fc8a571503a",
+        "data": {
+            "content": "🤖 Alquimia AI is a company that offers AI-based solutions for businesses, focusing on transparency, trust, and human-centered technology 🌟. They provide autonomous AI solutions that embody values driving exceptional results for organizations committed to innovation, transparency, and human-centric technology 📈. Their goal is to empower companies to build libraries of intelligent assistants trained on their own data, able to adapt to context and respond with clarity and empathy 💬.",
+            "additional_kwargs": {},
+            "response_metadata": {
+                "token_usage": {
+                    "completion_tokens": 93,
+                    "prompt_tokens": 2567,
+                    "total_tokens": 2660,
+                    "completion_time": 0.338181818,
+                    "prompt_time": 0.149229617,
+                    "queue_time": 0.11258989699999997,
+                    "total_time": 0.487411435
+                },
+                "model_name": "llama-3.3-70b-versatile",
+                "system_fingerprint": "fp_55062f05af",
+                "finish_reason": "stop",
+                "logprobs": null
+            },
+            "type": "ai",
+            "id": "run--d2863e20-f17e-4fd7-a9ad-4b3a168b0727-0",
+            "example": false,
+            "tool_calls": [],
+            "invalid_tool_calls": [],
+            "usage_metadata": {
+                "input_tokens": 2567,
+                "output_tokens": 93,
+                "total_tokens": 2660
+            }
+        },
+        "status": "success",
+        "date_submitted": "2025-06-18T18:44:04.614851"
+    },
+    "experts": [],
+    "thinkings": [
+        {
+            "event_class": "DanteInferenceResponse",
+            "control_id": "917bbbc8d7d44772be6e860a72686c81",
+            "data": {
+                "content": {
+                    "content": "🤖 Alquimia AI is a company that offers AI-based solutions for businesses, focusing on transparency, trust, and human-centered technology 🌟. They provide autonomous AI solutions that embody values driving exceptional results for organizations committed to innovation, transparency, and human-centric technology 📈. Their goal is to empower companies to build libraries of intelligent assistants trained on their own data, able to adapt to context and respond with clarity and empathy 💬.",
+                    "additional_kwargs": {},
+                    "response_metadata": {
+                        "token_usage": {
+                            "completion_tokens": 93,
+                            "prompt_tokens": 2567,
+                            "total_tokens": 2660,
+                            "completion_time": 0.338181818,
+                            "prompt_time": 0.149229617,
+                            "queue_time": 0.11258989699999997,
+                            "total_time": 0.487411435
+                        },
+                        "model_name": "llama-3.3-70b-versatile",
+                        "system_fingerprint": "fp_55062f05af",
+                        "finish_reason": "stop",
+                        "logprobs": null
+                    },
+                    "type": "ai",
+                    "id": "run--d2863e20-f17e-4fd7-a9ad-4b3a168b0727-0",
+                    "example": false,
+                    "tool_calls": [],
+                    "invalid_tool_calls": [],
+                    "usage_metadata": {
+                        "input_tokens": 2567,
+                        "output_tokens": 93,
+                        "total_tokens": 2660
+                    }
+                },
+                "is_complete": true,
+                "is_partial": false
+            },
+            "status": "success",
+            "date_submitted": "2025-06-18T18:44:04.613553"
+        }
+    ],
+    "tools_output": [],
+    "pending_tools_to_approve": [],
+    "tools_pending_execution": [],
+    "errors": [],
+    "event_class": "AssistantInferenceCommand",
+    "date_submitted": "2025-06-18T18:43:47.420932",
+    "control_id": "540fd45072094fe998429fc8a571503a"
+}
+```
+
+## Key Response Fields
+
+- **`stream_id`**: Unique identifier for the conversation stream
+- **`response`**: The main assistant response with content and metadata
+- **`response.data.content`**: The actual text response from the assistant
+- **`response.response_metadata`**: Performance metrics and model information
+- **`thinkings`**: The assistant's reasoning process and internal thoughts
+- **`tools_output`**: Results from any tools that were executed
+- **`errors`**: Any errors that occurred during processing
+- **`event_class`**: Type of event (e.g., 'AssistantInferenceCommand')
+
+## JavaScript Example
+
+```javascript
+// First, start a conversation to get the stream_id
+const chatResponse = await fetch('https://runtime.apps.alquimiaai.hostmydemo.online/infer/chat/alquimia-twyd', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    query: 'What is Alquimia AI?',
+    session_id: 'my-session',
+    attachments: []
+  })
+});
+
+const chatData = await chatResponse.json();
+const streamId = chatData.stream_id;
+
+// Then connect to the stream
+const eventSource = new EventSource(`https://runtime.apps.alquimiaai.hostmydemo.online/stream/${streamId}`);
+
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  
+  if (data.response && data.response.data && data.response.data.content) {
+    console.log('Assistant response:', data.response.data.content);
+  }
+  
+  if (data.thinkings && data.thinkings.length > 0) {
+    console.log('Thinking process:', data.thinkings);
+  }
+};
+
+eventSource.onerror = function(error) {
+  console.error('Stream error:', error);
+  eventSource.close();
+};
+```
+
+## cURL Example
+
+```bash
+# First get the stream_id
+curl -X POST https://runtime.apps.alquimiaai.hostmydemo.online/infer/chat/alquimia-twyd \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What is Alquimia AI?",
+    "session_id": "my-session",
+    "attachments": []
+  }'
+
+# Then connect to the stream (replace STREAM_ID with the actual stream_id)
+curl -N https://runtime.apps.alquimiaai.hostmydemo.online/stream/STREAM_ID
+``` 

@@ -1,0 +1,290 @@
+---
+title: Alquimia Core
+icon: cog
+---
+
+# Alquimia Core
+
+Alquimia Core is the central engine that provides all the fundamental functionality to create, configure, and manage intelligent and customizable AI assistants.
+
+## What is Alquimia Core?
+
+Alquimia Core is the main library that contains all the business logic, data models, and essential functionalities for developing AI assistants with Alquimia. It is the heart of the Alquimia ecosystem, providing the capabilities needed to create sophisticated and personalized assistants.
+
+## Key Features
+
+### 🧠 **Advanced Assistant Management**
+- Creation and configuration of personalized assistants
+- Dynamic personality and behavior management
+- Role and specialization system
+- Specific AI model configuration
+
+### 🔄 **Natural Language Processing**
+- Advanced NLP capabilities and context understanding
+- Sentiment and emotion analysis
+- User intent detection
+- Natural and coherent response generation
+
+### 💾 **Intelligent Context Management**
+- Long-term coherent conversation maintenance
+- Persistent conversation memory
+- Multiple session management
+- Dynamic context based on previous interactions
+
+### 🛠️ **Extensible Tool System**
+- Framework for creating custom tools
+- Integration with external APIs
+- Execution of complex actions and tasks
+- Tool approval system
+
+### 📚 **Advanced Knowledge Management**
+- Optimized RAG (Retrieval-Augmented Generation)
+- Semantic and vector search
+- Dynamic knowledge bases
+- Automatic data update and maintenance
+
+## Modular Architecture
+
+### Core Components
+
+#### **Assistant Manager**
+```python
+from alquimia_core import AssistantManager
+
+# Create a new assistant
+assistant = AssistantManager.create_assistant(
+    name="Customer Support Bot",
+    personality="friendly and helpful",
+    expertise=["customer service", "product knowledge"],
+    model_config={
+        "provider": "groq",
+        "model": "llama-3.3-70b-versatile"
+    }
+)
+```
+
+#### **Context Manager**
+```python
+from alquimia_core import ContextManager
+
+# Manage conversation context
+context = ContextManager(
+    session_id="user-123",
+    max_history=10,
+    memory_strategy="sliding_window"
+)
+
+# Add context
+context.add_interaction(
+    user_message="What products do you have?",
+    assistant_response="We offer AI solutions for businesses...",
+    metadata={"timestamp": "2024-01-15T10:30:00Z"}
+)
+```
+
+#### **Tool Framework**
+```python
+from alquimia_core.tools import BaseTool
+
+class WeatherTool(BaseTool):
+    name = "weather_checker"
+    description = "Get current weather information"
+    
+    def execute(self, location: str) -> dict:
+        # Logic to get weather
+        return {"temperature": "22°C", "condition": "sunny"}
+```
+
+#### **Knowledge Base**
+```python
+from alquimia_core.knowledge import KnowledgeBase
+
+# Create knowledge base
+kb = KnowledgeBase(
+    name="company_docs",
+    embedding_model="sentence-transformers/all-MiniLM-L6-v2"
+)
+
+# Add documents
+kb.add_documents([
+    {"content": "Alquimia AI offers...", "metadata": {"source": "website"}},
+    {"content": "Our products include...", "metadata": {"source": "brochure"}}
+])
+```
+
+## Assistant Configuration
+
+### Personality and Behavior
+```python
+assistant_config = {
+    "identity": "You are an AI assistant working for Alquimia AI",
+    "personality": "You are friendly and use emojis 😎 to better explain your answers",
+    "purpose": "Your goal is to address potential clients visiting our website",
+    "rules": [
+        "Always respond in the same language the user used",
+        "Respond briefly and concisely",
+        "Avoid answering queries unrelated to your purpose"
+    ],
+    "knowledge": "Use only the provided information about Alquimia AI"
+}
+```
+
+### Model Integration
+```python
+model_config = {
+    "type": "generative-dynamic",
+    "connector": {
+        "class_path": "langchain_groq.chat_models.ChatGroq",
+        "params": {
+            "temperature": 0.7,
+            "max_tokens": 1000
+        }
+    },
+    "embeddings": {
+        "class_path": "langchain_huggingface.embeddings.HuggingFaceEndpointEmbeddings",
+        "params": {
+            "model_name": "sentence-transformers/all-MiniLM-L6-v2"
+        }
+    }
+}
+```
+
+## Tool System
+
+### Creating Custom Tools
+```python
+from alquimia_core.tools import ToolRegistry
+
+@ToolRegistry.register
+class DatabaseQueryTool(BaseTool):
+    name = "database_query"
+    description = "Query company database for information"
+    
+    def execute(self, query: str, table: str) -> dict:
+        # Logic to query database
+        return {"results": [...], "count": 5}
+```
+
+### Integrated Tools
+- **Web Search**: Real-time search
+- **File Operations**: File reading and writing
+- **API Integration**: Connection with external services
+- **Data Analysis**: Data analysis and statistics
+
+## Knowledge Management
+
+### RAG (Retrieval-Augmented Generation)
+```python
+from alquimia_core.rag import RAGEngine
+
+rag = RAGEngine(
+    knowledge_base="company_docs",
+    retrieval_strategy="semantic_search",
+    top_k=5,
+    similarity_threshold=0.7
+)
+
+# Search for relevant information
+context = rag.retrieve("What are your pricing plans?")
+```
+
+### Knowledge Base Types
+- **Documental**: PDFs, text documents
+- **Web**: Website content
+- **Structured**: Structured databases
+- **Conversational**: Conversation history
+
+## Integration with Other Components
+
+### **Alquimia Runtime**
+- Core provides business logic to Runtime
+- Assistant configuration sent to Runtime
+- Tool management coordinated with Runtime
+
+### **Alquimia SDK**
+- SDK uses Core to create and configure assistants
+- Core functionalities exposed through SDK
+- Context and knowledge management from SDK
+
+### **Fair Forge**
+- Core provides data for evaluation
+- Quality metrics based on Core functionalities
+- Assistant behavior analysis
+
+## Installation and Configuration
+
+### Installation
+```bash
+pip install alquimia-core
+```
+
+### Basic Configuration
+```python
+from alquimia_core import AlquimiaCore
+
+# Initialize Core
+core = AlquimiaCore(
+    database_url="postgresql://user:pass@localhost/alquimia_core",
+    redis_url="redis://localhost:6379",
+    embedding_model="sentence-transformers/all-MiniLM-L6-v2"
+)
+```
+
+### Environment Variables
+```bash
+# Database
+ALQUIMIA_DATABASE_URL=postgresql://user:pass@localhost/alquimia_core
+
+# Redis for cache
+ALQUIMIA_REDIS_URL=redis://localhost:6379
+
+# Embedding models
+ALQUIMIA_EMBEDDING_MODEL=sentence-transformers/all-MiniLM-L6-v2
+ALQUIMIA_EMBEDDING_ENDPOINT=https://api.huggingface.co
+
+# AI model configuration
+ALQUIMIA_AI_MODEL_ENDPOINT=https://api.groq.com/openai/v1
+ALQUIMIA_AI_MODEL_API_KEY=your-api-key
+```
+
+## Development API
+
+### Creating Assistants
+```python
+from alquimia_core import AssistantBuilder
+
+assistant = AssistantBuilder() \
+    .with_name("Sales Assistant") \
+    .with_personality("enthusiastic and persuasive") \
+    .with_expertise(["sales", "product knowledge"]) \
+    .with_tools(["web_search", "database_query"]) \
+    .with_knowledge_base("sales_docs") \
+    .build()
+```
+
+### Context Management
+```python
+from alquimia_core import ConversationManager
+
+conversation = ConversationManager(session_id="user-123")
+
+# Add user message
+conversation.add_user_message("I need help with pricing")
+
+# Get context for assistant
+context = conversation.get_context(max_tokens=2000)
+
+# Add assistant response
+conversation.add_assistant_response("Here are our pricing options...")
+```
+
+## Coming Soon
+
+- **Multi-modal support**: Support for images, audio and video
+- **Advanced reasoning**: More sophisticated reasoning capabilities
+- **Federated learning**: Distributed learning between assistants
+- **Custom model training**: Custom model training
+
+---
+
+For more technical information, check the [Alquimia Core repository](https://github.com/Alquimia-ai/alquimia-core/tree/b171f12399c6420fb89ddc13db435f5ccb8cb8c9) on GitHub. 

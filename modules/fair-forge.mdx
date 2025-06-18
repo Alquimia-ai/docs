@@ -1,43 +1,44 @@
 ---
 title: Fair Forge
+icon: hammer
 ---
 
 # Alquimia AI Fair Forge
 
-Alquimia AI Fair Forge es un componente de medición de desempeño diseñado para evaluar modelos y asistentes de IA. Proporciona métricas claras y útiles para entender y mejorar tus aplicaciones de IA mediante análisis y evaluación integral.
+Alquimia AI Fair Forge is a performance measurement component designed to evaluate AI models and assistants. It provides clear and useful metrics to understand and improve your AI applications through comprehensive analysis and evaluation.
 
-## ¿Qué es Fair Forge?
+## What is Fair Forge?
 
-Fair Forge evalúa modelos y asistentes de IA a través de cuatro métricas principales:
+Fair Forge evaluates AI models and assistants through four main metrics:
 
-- **Conversacional**: Calidad y efectividad de las conversaciones.
-- **Humanidad**: Qué tan natural y humano es el asistente.
-- **Bias (Sesgo)**: Detección de sesgos en las respuestas.
-- **Contexto**: Capacidad de mantener y usar el contexto.
+- **Conversational**: Quality and effectiveness of conversations.
+- **Humanity**: How natural and human-like the assistant is.
+- **Bias**: Detection of biases in responses.
+- **Context**: Ability to maintain and use context.
 
-## Instalación
+## Installation
 
-1. Activa tu entorno virtual:
+1. Activate your virtual environment:
 
 ```shell
 source venv/bin/activate
 ```
 
-2. Construye el paquete:
+2. Build the package:
 
 ```shell
 make package
 ```
 
-3. Instala el paquete:
+3. Install the package:
 
 ```shell
 pip install dist/alquimia_fair_forge-0.0.1.tar.gz -q
 ```
 
-## Estructura del Dataset
+## Dataset Structure
 
-El dataset debe tener el siguiente formato JSON:
+The dataset must have the following JSON format:
 
 ```json
 [
@@ -58,9 +59,9 @@ El dataset debe tener el siguiente formato JSON:
 ]
 ```
 
-## Uso de las métricas
+## Using the Metrics
 
-### Ejemplo de Custom Retriever
+### Custom Retriever Example
 
 ```python
 from fair_forge.schemas import Dataset
@@ -76,7 +77,7 @@ class CustomRetriever(Retriever):
         return datasets
 ```
 
-### Métricas disponibles
+### Available Metrics
 
 #### Context
 
@@ -121,9 +122,9 @@ metrics = Conversational.run(
 )
 ```
 
-#### Bias (Sesgo)
+#### Bias
 
-Para esta métrica necesitas desplegar un modelo Guardian compatible con API tipo OpenAI. Se recomienda IBM Granite Guardian.
+For this metric you need to deploy a Guardian model compatible with OpenAI-type API. IBM Granite Guardian is recommended.
 
 ```python
 from getpass import getpass
@@ -136,8 +137,8 @@ GUARDIAN_URL = os.environ.get("GUARDIAN_URL")
 GUARDIAN_MODEL_NAME = os.environ.get("GUARDIAN_MODEL_NAME")
 GUARDIAN_API_KEY = guardian_api_key
 
-guardian_temperature = 0.7  # ejemplo
-max_tokens = 512  # ejemplo
+guardian_temperature = 0.7  # example
+max_tokens = 512  # example
 
 metrics = Bias.run(
     CustomRetriever,
@@ -150,13 +151,13 @@ metrics = Bias.run(
 )
 ```
 
-## Contribuir nuevas métricas
+## Contributing New Metrics
 
-1. Crea un archivo Python en `fair_forge/metrics` con tu métrica.
-2. Implementa la clase siguiendo la estructura base del README de fair-forge.
-3. Documenta tu métrica en `docs/journal.tex`.
-4. Haz un Pull Request.
+1. Create a Python file in `fair_forge/metrics` with your metric.
+2. Implement the class following the base structure from the fair-forge README.
+3. Document your metric in `docs/journal.tex`.
+4. Make a Pull Request.
 
 ---
 
-Para más detalles, consulta la [documentación técnica](https://github.com/alquimia-ai/fair-forge) o el archivo `journal.pdf` en el repositorio. 
+For more details, refer to the [technical documentation](https://github.com/alquimia-ai/fair-forge) or the `journal.pdf` file in the repository. 

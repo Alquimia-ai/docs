@@ -3,28 +3,11 @@ title: 'Chat with Assistant'
 openapi: 'POST /infer/chat/{assistant_id}'
 ---
 
-Start a conversation with a specific AI assistant in Alquimia Runtime.
+Start a conversation with a specific AI assistant in Alquimia Runtime. This endpoint returns the assistant's configuration and conversation setup information.
 
-## Additional Endpoints
+## Response Format
 
-### Get Assistant Configuration
-
-You can also retrieve detailed configuration information for a specific assistant using:
-
-```
-GET /chat/{assistant_id}
-```
-
-This endpoint returns comprehensive information about the assistant's configuration, including:
-
-- **Stream and Control IDs**: For managing conversation flow
-- **Assistant Configuration**: Profile, personality, and behavior rules
-- **Integration Settings**: Tools, agents, and expert configurations
-- **Dante Configuration**: Advanced AI model settings and custom clauses
-
-### Response Format
-
-The assistant configuration endpoint returns a detailed JSON object with the following structure:
+The chat endpoint returns the assistant's configuration and conversation setup:
 
 ```json
 {
@@ -84,12 +67,16 @@ The assistant configuration endpoint returns a detailed JSON object with the fol
 }
 ```
 
-### Key Configuration Fields
+### Key Response Fields
 
 - **`stream_id`**: Unique identifier for the conversation stream
 - **`control_id`**: Control identifier for managing the conversation
-- **`config.nickname`**: Display name of the assistant
-- **`config.description`**: Description of the assistant's purpose
-- **`config.tags`**: Categorization tags for the assistant
-- **`config.dante.profile.custom_clauses`**: Dynamic personality and behavior configuration
-- **`config.dante.config`**: AI model configuration and integrations 
+- **`query`**: The original query that was sent
+- **`parameters`**: Additional parameters and tools configuration
+- **`config`**: Complete assistant configuration including personality and behavior
+- **`attachments`**: File attachments for the conversation
+- **`depth`**: Conversation depth level
+
+### Note about Dante Configuration
+
+The `dante` field contains the AI model configuration which varies dynamically depending on the assistant. The structure and content of this field will differ for each assistant based on their specific configuration. 

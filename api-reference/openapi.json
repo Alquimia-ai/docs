@@ -46,11 +46,11 @@
         },
         "responses": {
           "200": {
-            "description": "Successful assistant response",
+            "description": "Assistant configuration and conversation setup",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ChatResponse"
+                  "$ref": "#/components/schemas/AssistantConfig"
                 }
               }
             }
@@ -88,14 +88,14 @@
         }
       }
     },
-    "/chat/{assistant_id}": {
+    "/stream/{stream_id}": {
       "get": {
-        "description": "Get detailed configuration information for a specific assistant",
+        "description": "Stream real-time processing chunks from an AI assistant using Server-Sent Events (SSE)",
         "parameters": [
           {
-            "name": "assistant_id",
+            "name": "stream_id",
             "in": "path",
-            "description": "Unique identifier of the assistant",
+            "description": "Unique identifier of the conversation stream (obtained from POST /infer/chat/{assistant_id})",
             "required": true,
             "schema": {
               "type": "string"
@@ -104,17 +104,17 @@
         ],
         "responses": {
           "200": {
-            "description": "Assistant configuration retrieved successfully",
+            "description": "Server-Sent Events stream with processing chunks",
             "content": {
-              "application/json": {
+              "text/event-stream": {
                 "schema": {
-                  "$ref": "#/components/schemas/AssistantConfig"
+                  "$ref": "#/components/schemas/StreamResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "Assistant not found",
+            "description": "Stream not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -185,24 +185,6 @@
               "type": "object"
             },
             "default": []
-          }
-        }
-      },
-      "ChatResponse": {
-        "type": "object",
-        "properties": {
-          "response": {
-            "description": "Assistant's response",
-            "type": "string"
-          },
-          "session_id": {
-            "description": "Session identifier",
-            "type": "string"
-          },
-          "timestamp": {
-            "description": "Response timestamp",
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -286,74 +268,8 @@
                 "type": "object"
               },
               "dante": {
-                "description": "Dante AI model configuration",
-                "type": "object",
-                "properties": {
-                  "profile": {
-                    "type": "object",
-                    "properties": {
-                      "max_iterations": {
-                        "description": "Maximum number of iterations",
-                        "type": "integer"
-                      },
-                      "max_iteration_volume": {
-                        "description": "Maximum volume per iteration",
-                        "type": "integer"
-                      },
-                      "collection_id": {
-                        "description": "Knowledge collection identifier",
-                        "type": "string"
-                      },
-                      "system_prompt": {
-                        "description": "System prompt template",
-                        "type": "string"
-                      },
-                      "custom_clauses": {
-                        "description": "Dynamic personality and behavior configuration",
-                        "type": "object",
-                        "properties": {
-                          "identity": {
-                            "description": "Assistant identity definition",
-                            "type": "string"
-                          },
-                          "personality": {
-                            "description": "Assistant personality traits",
-                            "type": "string"
-                          },
-                          "purpose": {
-                            "description": "Assistant's primary purpose",
-                            "type": "string"
-                          },
-                          "rules": {
-                            "description": "Behavior rules and guidelines",
-                            "type": "string"
-                          },
-                          "knowledge": {
-                            "description": "Knowledge domain definition",
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "type": {
-                        "description": "AI model type",
-                        "type": "string"
-                      },
-                      "connector": {
-                        "description": "Language model connector configuration",
-                        "type": "object"
-                      },
-                      "embeddings": {
-                        "description": "Embeddings model configuration",
-                        "type": "object"
-                      }
-                    }
-                  }
-                }
+                "description": "Dante AI model configuration (dynamic, varies by assistant)",
+                "type": "object"
               }
             }
           },
@@ -367,6 +283,197 @@
           "depth": {
             "description": "Conversation depth level",
             "type": "integer"
+          }
+        }
+      },
+      "StreamResponse": {
+        "type": "object",
+        "properties": {
+          "stream_id": {
+            "description": "Unique identifier for the conversation stream",
+            "type": "string"
+          },
+          "response": {
+            "description": "Assistant inference response",
+            "type": "object",
+            "properties": {
+              "event_class": {
+                "description": "Type of event (e.g., 'AssistantInferenceResponse')",
+                "type": "string"
+              },
+              "control_id": {
+                "description": "Control identifier for managing the conversation",
+                "type": "string"
+              },
+              "data": {
+                "description": "Response data containing content and metadata",
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "description": "The assistant's response content",
+                    "type": "string"
+                  },
+                  "additional_kwargs": {
+                    "description": "Additional keyword arguments",
+                    "type": "object"
+                  },
+                  "response_metadata": {
+                    "description": "Metadata about the response generation",
+                    "type": "object",
+                    "properties": {
+                      "token_usage": {
+                        "description": "Token usage statistics",
+                        "type": "object",
+                        "properties": {
+                          "completion_tokens": {
+                            "type": "integer"
+                          },
+                          "prompt_tokens": {
+                            "type": "integer"
+                          },
+                          "total_tokens": {
+                            "type": "integer"
+                          },
+                          "completion_time": {
+                            "type": "number"
+                          },
+                          "prompt_time": {
+                            "type": "number"
+                          },
+                          "queue_time": {
+                            "type": "number"
+                          },
+                          "total_time": {
+                            "type": "number"
+                          }
+                        }
+                      },
+                      "model_name": {
+                        "description": "Name of the AI model used",
+                        "type": "string"
+                      },
+                      "system_fingerprint": {
+                        "description": "System fingerprint for the model",
+                        "type": "string"
+                      },
+                      "finish_reason": {
+                        "description": "Reason why the response generation finished",
+                        "type": "string"
+                      },
+                      "logprobs": {
+                        "description": "Log probabilities (if available)",
+                        "type": ["object", "null"]
+                      }
+                    }
+                  },
+                  "type": {
+                    "description": "Type of response (e.g., 'ai')",
+                    "type": "string"
+                  },
+                  "id": {
+                    "description": "Unique identifier for the response",
+                    "type": "string"
+                  },
+                  "example": {
+                    "description": "Whether this is an example response",
+                    "type": "boolean"
+                  },
+                  "tool_calls": {
+                    "description": "Tool calls made by the assistant",
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "invalid_tool_calls": {
+                    "description": "Invalid tool calls",
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "usage_metadata": {
+                    "description": "Usage metadata for the response",
+                    "type": "object",
+                    "properties": {
+                      "input_tokens": {
+                        "type": "integer"
+                      },
+                      "output_tokens": {
+                        "type": "integer"
+                      },
+                      "total_tokens": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              },
+              "status": {
+                "description": "Status of the response (e.g., 'success')",
+                "type": "string"
+              },
+              "date_submitted": {
+                "description": "Timestamp when the response was submitted",
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "experts": {
+            "description": "Expert responses",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "thinkings": {
+            "description": "Thinking process and reasoning",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tools_output": {
+            "description": "Output from tool executions",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "pending_tools_to_approve": {
+            "description": "Tools waiting for approval",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tools_pending_execution": {
+            "description": "Tools waiting to be executed",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "errors": {
+            "description": "Any errors that occurred during processing",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "event_class": {
+            "description": "Type of event (e.g., 'AssistantInferenceCommand')",
+            "type": "string"
+          },
+          "date_submitted": {
+            "description": "Timestamp when the event was submitted",
+            "type": "string",
+            "format": "date-time"
+          },
+          "control_id": {
+            "description": "Control identifier for managing the conversation",
+            "type": "string"
           }
         }
       },

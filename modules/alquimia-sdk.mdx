@@ -1,0 +1,475 @@
+---
+title: Alquimia SDK
+icon: code
+---
+
+# Alquimia SDK
+
+Alquimia SDK is the development library that simplifies integration with the Alquimia platform, providing an easy-to-use interface for creating applications with intelligent AI assistants.
+
+## What is Alquimia SDK?
+
+Alquimia SDK is a client library that abstracts the complexity of the Alquimia Runtime API, providing simple and intuitive methods to interact with AI assistants. It is designed for developers who want to integrate conversational AI capabilities into their applications quickly and efficiently.
+
+## Key Features
+
+### 🚀 **Simplified Integration**
+- Easy-to-use high-level API
+- Automatic authentication and session management
+- Transparent connection and retry management
+- Support for multiple programming languages
+
+### 💬 **Conversation Management**
+- Start and manage conversations with assistants
+- Automatic session context maintenance
+- Real-time response streaming
+- Attachment and multimedia handling
+
+### 🔧 **Tools and Extensions**
+- Execution of integrated tools
+- Creation of custom tools
+- Management of tools pending approval
+- Integration with external APIs
+
+### 📊 **Monitoring and Analytics**
+- Real-time performance metrics
+- Detailed logs for debugging
+- Usage and behavior analysis
+- Alerts and notifications
+
+## Installation
+
+### Python
+```bash
+pip install alquimia-sdk
+```
+
+### JavaScript/TypeScript
+```bash
+npm install @alquimia/sdk
+```
+
+### Go
+```bash
+go get github.com/alquimia-ai/sdk-go
+```
+
+## Basic Usage
+
+### SDK Initialization
+
+#### Python
+```python
+from alquimia_sdk import AlquimiaClient
+
+# Initialize client
+client = AlquimiaClient(
+    api_key="your-api-key",
+    base_url="https://runtime.apps.alquimiaai.hostmydemo.online"
+)
+```
+
+#### JavaScript
+```javascript
+import { AlquimiaClient } from '@alquimia/sdk';
+
+const client = new AlquimiaClient({
+  apiKey: 'your-api-key',
+  baseUrl: 'https://runtime.apps.alquimiaai.hostmydemo.online'
+});
+```
+
+#### Go
+```go
+import "github.com/alquimia-ai/sdk-go"
+
+client := alquimia.NewClient(&alquimia.Config{
+    APIKey:  "your-api-key",
+    BaseURL: "https://runtime.apps.alquimiaai.hostmydemo.online",
+})
+```
+
+### Start a Conversation
+
+#### Python
+```python
+# Start conversation
+response = await client.chat(
+    assistant_id="alquimia-twyd",
+    message="Hello, how can you help me today?",
+    session_id="my-session-123"
+)
+
+print(f"Assistant: {response.content}")
+print(f"Stream ID: {response.stream_id}")
+```
+
+#### JavaScript
+```javascript
+// Start conversation
+const response = await client.chat({
+  assistantId: 'alquimia-twyd',
+  message: 'Hello, how can you help me today?',
+  sessionId: 'my-session-123'
+});
+
+console.log(`Assistant: ${response.content}`);
+console.log(`Stream ID: ${response.streamId}`);
+```
+
+#### Go
+```go
+// Start conversation
+response, err := client.Chat(context.Background(), &alquimia.ChatRequest{
+    AssistantID: "alquimia-twyd",
+    Message:     "Hello, how can you help me today?",
+    SessionID:   "my-session-123",
+})
+
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Assistant: %s\n", response.Content)
+fmt.Printf("Stream ID: %s\n", response.StreamID)
+```
+
+### Response Streaming
+
+#### Python
+```python
+# Connect to stream
+async for chunk in client.stream(response.stream_id):
+    if chunk.content:
+        print(chunk.content, end='', flush=True)
+    
+    if chunk.is_complete:
+        print("\n--- Conversation complete ---")
+        break
+```
+
+#### JavaScript
+```javascript
+// Connect to stream
+const stream = client.stream(response.streamId);
+
+stream.on('message', (chunk) => {
+  if (chunk.content) {
+    process.stdout.write(chunk.content);
+  }
+  
+  if (chunk.isComplete) {
+    console.log('\n--- Conversation complete ---');
+    stream.close();
+  }
+});
+```
+
+#### Go
+```go
+// Connect to stream
+stream, err := client.Stream(context.Background(), response.StreamID)
+if err != nil {
+    log.Fatal(err)
+}
+
+for chunk := range stream {
+    if chunk.Content != "" {
+        fmt.Print(chunk.Content)
+    }
+    
+    if chunk.IsComplete {
+        fmt.Println("\n--- Conversation complete ---")
+        break
+    }
+}
+```
+
+## Advanced Features
+
+### File Attachment Management
+
+#### Python
+```python
+from alquimia_sdk import FileAttachment
+
+# Create file attachment
+attachment = FileAttachment(
+    file_path="document.pdf",
+    description="Company brochure"
+)
+
+# Send message with attachment
+response = await client.chat(
+    assistant_id="alquimia-twyd",
+    message="Please analyze this document",
+    session_id="my-session-123",
+    attachments=[attachment]
+)
+```
+
+#### JavaScript
+```javascript
+import { FileAttachment } from '@alquimia/sdk';
+
+// Create file attachment
+const attachment = new FileAttachment({
+  filePath: 'document.pdf',
+  description: 'Company brochure'
+});
+
+// Send message with attachment
+const response = await client.chat({
+  assistantId: 'alquimia-twyd',
+  message: 'Please analyze this document',
+  sessionId: 'my-session-123',
+  attachments: [attachment]
+});
+```
+
+### Custom Tools
+
+#### Python
+```python
+from alquimia_sdk import CustomTool
+
+# Define custom tool
+class WeatherTool(CustomTool):
+    name = "weather_checker"
+    description = "Get current weather information"
+    
+    def execute(self, location: str) -> dict:
+        # Logic to get weather
+        return {"temperature": "22°C", "condition": "sunny"}
+
+# Register tool
+client.register_tool(WeatherTool())
+
+# Use tool in conversation
+response = await client.chat(
+    assistant_id="alquimia-twyd",
+    message="What's the weather like in Madrid?",
+    session_id="my-session-123"
+)
+```
+
+#### JavaScript
+```javascript
+import { CustomTool } from '@alquimia/sdk';
+
+// Define custom tool
+class WeatherTool extends CustomTool {
+  constructor() {
+    super({
+      name: 'weather_checker',
+      description: 'Get current weather information'
+    });
+  }
+  
+  async execute(location) {
+    // Logic to get weather
+    return { temperature: '22°C', condition: 'sunny' };
+  }
+}
+
+// Register tool
+client.registerTool(new WeatherTool());
+
+// Use tool in conversation
+const response = await client.chat({
+  assistantId: 'alquimia-twyd',
+  message: "What's the weather like in Madrid?",
+  sessionId: 'my-session-123'
+});
+```
+
+### Session Management
+
+#### Python
+```python
+# Get session history
+history = await client.get_session_history("my-session-123")
+
+for message in history.messages:
+    print(f"{message.role}: {message.content}")
+
+# Clear session
+await client.clear_session("my-session-123")
+```
+
+#### JavaScript
+```javascript
+// Get session history
+const history = await client.getSessionHistory('my-session-123');
+
+history.messages.forEach(message => {
+  console.log(`${message.role}: ${message.content}`);
+});
+
+// Clear session
+await client.clearSession('my-session-123');
+```
+
+## Advanced Configuration
+
+### Client Configuration
+
+#### Python
+```python
+from alquimia_sdk import AlquimiaClient, ClientConfig
+
+config = ClientConfig(
+    api_key="your-api-key",
+    base_url="https://runtime.apps.alquimiaai.hostmydemo.online",
+    timeout=30,
+    max_retries=3,
+    retry_delay=1.0,
+    enable_logging=True,
+    log_level="INFO"
+)
+
+client = AlquimiaClient(config)
+```
+
+#### JavaScript
+```javascript
+import { AlquimiaClient } from '@alquimia/sdk';
+
+const client = new AlquimiaClient({
+  apiKey: 'your-api-key',
+  baseUrl: 'https://runtime.apps.alquimiaai.hostmydemo.online',
+  timeout: 30000,
+  maxRetries: 3,
+  retryDelay: 1000,
+  enableLogging: true,
+  logLevel: 'info'
+});
+```
+
+### Error Handling
+
+#### Python
+```python
+from alquimia_sdk import AlquimiaError, RateLimitError
+
+try:
+    response = await client.chat(
+        assistant_id="alquimia-twyd",
+        message="Hello",
+        session_id="my-session-123"
+    )
+except RateLimitError as e:
+    print(f"Rate limit exceeded: {e.retry_after} seconds")
+except AlquimiaError as e:
+    print(f"Error: {e.message}")
+    print(f"Code: {e.code}")
+```
+
+#### JavaScript
+```javascript
+import { AlquimiaError, RateLimitError } from '@alquimia/sdk';
+
+try {
+  const response = await client.chat({
+    assistantId: 'alquimia-twyd',
+    message: 'Hello',
+    sessionId: 'my-session-123'
+  });
+} catch (error) {
+  if (error instanceof RateLimitError) {
+    console.log(`Rate limit exceeded: ${error.retryAfter} seconds`);
+  } else if (error instanceof AlquimiaError) {
+    console.log(`Error: ${error.message}`);
+    console.log(`Code: ${error.code}`);
+  }
+}
+```
+
+## Framework Integration
+
+### React Hook
+
+```javascript
+import { useAlquimiaChat } from '@alquimia/sdk-react';
+
+function ChatComponent() {
+  const { messages, sendMessage, isLoading, error } = useAlquimiaChat({
+    assistantId: 'alquimia-twyd',
+    sessionId: 'my-session-123'
+  });
+
+  const handleSend = async (message) => {
+    await sendMessage(message);
+  };
+
+  return (
+    <div>
+      {messages.map((msg, index) => (
+        <div key={index}>
+          <strong>{msg.role}:</strong> {msg.content}
+        </div>
+      ))}
+      
+      <input 
+        type="text" 
+        onKeyPress={(e) => e.key === 'Enter' && handleSend(e.target.value)}
+        disabled={isLoading}
+      />
+      
+      {error && <div className="error">{error.message}</div>}
+    </div>
+  );
+}
+```
+
+### Vue.js Plugin
+
+```javascript
+import { createAlquimiaPlugin } from '@alquimia/sdk-vue';
+
+const app = createApp(App);
+app.use(createAlquimiaPlugin({
+  apiKey: 'your-api-key',
+  baseUrl: 'https://runtime.apps.alquimiaai.hostmydemo.online'
+}));
+```
+
+### Angular Service
+
+```typescript
+import { Injectable } from '@angular/core';
+import { AlquimiaClient } from '@alquimia/sdk';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AlquimiaService {
+  private client: AlquimiaClient;
+
+  constructor() {
+    this.client = new AlquimiaClient({
+      apiKey: 'your-api-key',
+      baseUrl: 'https://runtime.apps.alquimiaai.hostmydemo.online'
+    });
+  }
+
+  async sendMessage(message: string, sessionId: string) {
+    return await this.client.chat({
+      assistantId: 'alquimia-twyd',
+      message,
+      sessionId
+    });
+  }
+}
+```
+
+## Coming Soon
+
+- **Multi-language support**: Support for more programming languages
+- **Advanced caching**: Intelligent cache for frequent responses
+- **Offline mode**: Offline functionality with synchronization
+- **Real-time collaboration**: Real-time collaboration between users
+
+---
+
+For more technical information, check the [Alquimia SDK repository](https://github.com/Alquimia-ai/documentation/tree/main/ui-sdk) on GitHub. 

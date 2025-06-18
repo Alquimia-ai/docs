@@ -3,9 +3,11 @@
   "theme": "mint",
   "name": "Alquimia Runtime",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#091144",
+    "secondary": "#9F32B2",
+    "accent": "#00D7FF",
+    "light": "#00D7FF",
+    "dark": "#0D0D0E"
   },
   "favicon": "/favicon.svg",
   "navigation": {
@@ -19,6 +21,15 @@
               "index",
               "quickstart",
               "development"
+            ]
+          },
+          {
+            "group": "Modules",
+            "pages": [
+              "modules/fair-forge",
+              "modules/alquimia-runtime",
+              "modules/alquimia-core",
+              "modules/alquimia-sdk"
             ]
           }
         ]
@@ -36,7 +47,7 @@
             "group": "Endpoints",
             "pages": [
               "api-reference/endpoint/chat",
-              "api-reference/endpoint/assistant-config"
+              "api-reference/endpoint/stream"
             ]
           }
         ]
@@ -45,26 +56,17 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
           "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
+          "href": "https://www.alquimia.ai/en",
           "icon": "newspaper"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/images/alquimia-logo-full.svg",
+    "dark": "/images/alquimia-logo-full.svg",
+    "icon": "/images/alquimia-iso-logo.svg"
   },
   "navbar": {
     "links": [

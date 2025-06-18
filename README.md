@@ -9,6 +9,7 @@ This repository contains the documentation for Alquimia Runtime, a powerful plat
 - **File Attachments**: Support for file uploads and document processing
 - **Real-time Responses**: Get instant responses from AI assistants
 - **Assistant Configuration**: Retrieve detailed configuration and personality settings for each assistant
+- **Real-time Streaming**: Stream assistant responses using Server-Sent Events (SSE)
 
 ## Development
 
@@ -27,7 +28,7 @@ mintlify dev
 ## API Endpoints
 
 - **POST /infer/chat/{assistant_id}**: Start a conversation with a specific AI assistant
-- **GET /chat/{assistant_id}**: Get detailed configuration information for a specific assistant
+- **GET /stream/{stream_id}**: Stream real-time responses from an AI assistant
 
 ## Publishing Changes
 

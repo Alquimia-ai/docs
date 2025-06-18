@@ -1,0 +1,212 @@
+---
+title: Alquimia Runtime
+icon: zap
+---
+
+# Alquimia Runtime
+
+Alquimia Runtime is the real-time execution platform for dynamic AI assistants, providing the necessary infrastructure to deploy and manage intelligent conversations at scale.
+
+## What is Alquimia Runtime?
+
+Alquimia Runtime is the execution engine that enables AI assistants to process conversations in real-time, maintaining context, executing tools, and providing fluid and natural responses.
+
+## Key Features
+
+### 🚀 **Real-time Execution**
+- Conversation processing with minimal latency
+- Response streaming using Server-Sent Events (SSE)
+- Efficient management of multiple concurrent sessions
+
+### 📈 **Automatic Scalability**
+- Automatic adaptation to traffic demand
+- Intelligent load balancing between nodes
+- Optimized resource management
+
+### 🔄 **Session Management**
+- Maintenance of conversation context
+- Persistent conversation state
+- Recovery of interrupted sessions
+
+### 🛠️ **Tool Integration**
+- Real-time tool execution
+- Management of tools pending approval
+- Tool results integrated in responses
+
+### 📊 **Monitoring and Metrics**
+- Complete performance tracking
+- Token usage and response time metrics
+- Detailed logs for debugging
+
+## Architecture
+
+### Core Components
+
+#### **API Gateway**
+- Main endpoint: `/infer/chat/{assistant_id}`
+- Authentication and authorization management
+- Rate limiting and throttling
+
+#### **Streaming Engine**
+- Streaming endpoint: `/stream/{stream_id}`
+- Server-Sent Events for real-time responses
+- Management of persistent connections
+
+#### **Session Manager**
+- Conversation context storage
+- Active session management
+- Automatic cleanup of expired sessions
+
+#### **Tool Execution Engine**
+- Asynchronous tool execution
+- Pending tool management
+- Integration with external APIs
+
+## Main Endpoints
+
+### POST `/infer/chat/{assistant_id}`
+Start a conversation with a specific assistant and return the assistant's configuration along with stream identifiers.
+
+**Request Body:**
+```json
+{
+  "query": "What is Alquimia AI?",
+  "session_id": "my-session-123",
+  "attachments": []
+}
+```
+
+**Response:**
+```json
+{
+  "stream_id": "4aacb75d5d2a453ebf5dfbd65f61ef3b",
+  "control_id": "540fd45072094fe998429fc8a571503a",
+  "query": "What is Alquimia AI?",
+  "config": {
+    "nickname": "Alquimia AI Specialist",
+    "assistant_id": "alquimia-twyd",
+    "dante": {
+      "profile": {
+        "custom_clauses": {
+          "personality": "You are friendly and use emojis 😎"
+        }
+      }
+    }
+  }
+}
+```
+
+### GET `/stream/{stream_id}`
+Real-time stream of assistant responses using Server-Sent Events.
+
+**SSE Response:**
+```json
+{
+  "stream_id": "4aacb75d5d2a453ebf5dfbd65f61ef3b",
+  "response": {
+    "data": {
+      "content": "🤖 Alquimia AI is a company that offers AI-based solutions...",
+      "response_metadata": {
+        "token_usage": {
+          "total_tokens": 2660,
+          "completion_time": 0.338
+        },
+        "model_name": "llama-3.3-70b-versatile"
+      }
+    }
+  },
+  "thinkings": [...],
+  "tools_output": [...]
+}
+```
+
+## Integration with Other Components
+
+### **Alquimia Core**
+- Runtime uses Core for business logic
+- Assistant configuration from Core
+- Tool and expert management
+
+### **Alquimia SDK**
+- SDK connects to Runtime to execute conversations
+- Automatic session and streaming management
+- Error handling and retries
+
+### **Fair Forge**
+- Conversation quality metrics
+- Assistant performance evaluation
+- Bias and humanity analysis
+
+## Deployment and Configuration
+
+### System Requirements
+- **CPU**: Minimum 4 cores, recommended 8+ cores
+- **RAM**: Minimum 8GB, recommended 16GB+
+- **Storage**: SSD recommended for better performance
+- **Network**: Stable connection for streaming
+
+### Environment Variables
+```bash
+# Database configuration
+DATABASE_URL=postgresql://user:pass@localhost/alquimia_runtime
+
+# Redis configuration for sessions
+REDIS_URL=redis://localhost:6379
+
+# AI model configuration
+AI_MODEL_ENDPOINT=https://api.groq.com/openai/v1
+AI_MODEL_API_KEY=your-api-key
+
+# Embeddings configuration
+EMBEDDINGS_ENDPOINT=https://api.huggingface.co
+EMBEDDINGS_API_KEY=your-api-key
+```
+
+### Docker Deployment
+```bash
+# Build image
+docker build -t alquimia-runtime .
+
+# Run container
+docker run -d \
+  --name alquimia-runtime \
+  -p 8000:8000 \
+  -e DATABASE_URL=$DATABASE_URL \
+  -e REDIS_URL=$REDIS_URL \
+  alquimia-runtime
+```
+
+## Monitoring and Logs
+
+### Key Metrics
+- **Throughput**: Conversations per second
+- **Latency**: Average response time
+- **Error Rate**: Percentage of errors
+- **Active Sessions**: Concurrent active sessions
+
+### Structured Logs
+```json
+{
+  "timestamp": "2024-01-15T10:30:00Z",
+  "level": "INFO",
+  "service": "alquimia-runtime",
+  "session_id": "my-session-123",
+  "assistant_id": "alquimia-twyd",
+  "event": "conversation_started",
+  "metadata": {
+    "query_length": 25,
+    "has_attachments": false
+  }
+}
+```
+
+## Coming Soon
+
+- **Horizontal auto-scaling**: Automatic scaling based on metrics
+- **Multi-region deployment**: Geographically distributed deployment
+- **Advanced caching**: Intelligent cache for frequent responses
+- **Real-time analytics**: Real-time metrics dashboard
+
+---
+
+For more technical information, check the [Alquimia Runtime repository](https://github.com/Alquimia-ai/alquimia-runtime/tree/develop) on GitHub. 

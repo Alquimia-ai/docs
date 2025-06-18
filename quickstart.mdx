@@ -10,7 +10,7 @@ Learn how to integrate with Alquimia Runtime's AI assistant API and start buildi
 ### Your First API Call
 
 <AccordionGroup>
-  <Accordion icon="code" title="Make your first chat request">
+  <Accordion icon="code" title="Start a conversation with an assistant">
     Start a conversation with a specific AI assistant using our chat endpoint. Here's a simple example using cURL:
     
     ```bash
@@ -45,27 +45,54 @@ Learn how to integrate with Alquimia Runtime's AI assistant API and start buildi
   </Accordion>
 </AccordionGroup>
 
-### Get Assistant Configuration
+### Real-time Streaming
 
 <AccordionGroup>
-  <Accordion icon="settings" title="Retrieve assistant configuration">
-    You can also get detailed configuration information for a specific assistant:
+  <Accordion icon="stream" title="Stream assistant responses">
+    After starting a conversation, you can stream real-time responses using the stream_id:
     
     ```bash
-    curl -X GET https://runtime.apps.alquimiaai.hostmydemo.online/chat/alquimia-twyd
+    # First get the stream_id from the chat response
+    curl -X POST https://runtime.apps.alquimiaai.hostmydemo.online/infer/chat/alquimia-twyd \
+      -H "Content-Type: application/json" \
+      -d '{
+        "query": "What is Alquimia AI?",
+        "session_id": "my-session",
+        "attachments": []
+      }'
+    
+    # Then connect to the stream (replace STREAM_ID with the actual stream_id)
+    curl -N https://runtime.apps.alquimiaai.hostmydemo.online/stream/STREAM_ID
     ```
-    
-    This returns comprehensive information about the assistant's personality, behavior rules, and AI model configuration.
   </Accordion>
-  <Accordion icon="javascript" title="Using JavaScript for configuration">
+  <Accordion icon="javascript" title="Using JavaScript for streaming">
     ```javascript
-    const configResponse = await fetch('https://runtime.apps.alquimiaai.hostmydemo.online/chat/alquimia-twyd', {
-      method: 'GET'
+    // First, start a conversation to get the stream_id
+    const chatResponse = await fetch('https://runtime.apps.alquimiaai.hostmydemo.online/infer/chat/alquimia-twyd', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        query: 'What is Alquimia AI?',
+        session_id: 'my-session',
+        attachments: []
+      })
     });
-    
-    const config = await configResponse.json();
-    console.log('Assistant config:', config.config.nickname);
-    console.log('Personality:', config.config.dante.profile.custom_clauses.personality);
+
+    const chatData = await chatResponse.json();
+    const streamId = chatData.stream_id;
+
+    // Then connect to the stream
+    const eventSource = new EventSource(`https://runtime.apps.alquimiaai.hostmydemo.online/stream/${streamId}`);
+
+    eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      
+      if (data.response && data.response.data && data.response.data.content) {
+        console.log('Assistant response:', data.response.data.content);
+      }
+    };
     ```
   </Accordion>
 </AccordionGroup>
@@ -75,21 +102,42 @@ Learn how to integrate with Alquimia Runtime's AI assistant API and start buildi
 <AccordionGroup>
 
 <Accordion icon="message-bot" title="Chat Response Format">
-  The chat API will return a JSON response with the assistant's reply:
+  The chat API returns the assistant's configuration and conversation setup:
   
   ```json
   {
-    "response": "Hello! I'm here to help you with any questions or tasks you might have. What would you like to know?",
-    "session_id": "my-first-session",
-    "timestamp": "2024-01-15T10:30:00Z"
+    "stream_id": "4aacb75d5d2a453ebf5dfbd65f61ef3b",
+    "control_id": "540fd45072094fe998429fc8a571503a",
+    "query": "Hello, how can you help me today?",
+    "parameters": {
+      "tools": [],
+      "extra_data": {}
+    },
+    "config": {
+      "nickname": "Alquimia AI Specialist",
+      "description": "An specialized agent about Alquimia AI related questions",
+      "assistant_id": "alquimia-twyd",
+      "dante": {
+        "profile": {
+          "custom_clauses": {
+            "personality": "You are friendly and use **emojis** 😎 to better explain your answers."
+          }
+        }
+      }
+    },
+    "attachments": [],
+    "depth": 0
   }
   ```
 </Accordion>
 <Accordion icon="users" title="Session Management">
   Use the same `session_id` across multiple requests to maintain conversation context. The assistant will remember previous interactions within the same session.
 </Accordion>
-<Accordion icon="cog" title="Configuration Response">
-  The configuration endpoint returns detailed information about the assistant's setup, including personality traits, behavior rules, and AI model settings. This is useful for understanding how the assistant is configured and what capabilities it has.
+<Accordion icon="cog" title="Configuration Information">
+  The response includes the assistant's complete configuration, including personality traits, behavior rules, and AI model settings. The `dante` field contains dynamic configuration that varies by assistant.
+</Accordion>
+<Accordion icon="stream" title="Streaming Responses">
+  The streaming endpoint provides real-time updates including the assistant's response content, thinking process, tool outputs, and performance metrics. This allows for interactive, real-time conversations.
 </Accordion>
 
 </AccordionGroup>
@@ -113,11 +161,11 @@ Explore our comprehensive API documentation to unlock the full potential of Alqu
 </Card>
 
 <Card
-  title="Assistant Configuration"
-  icon="settings"
-  href="/api-reference/endpoint/assistant-config"
+  title="Streaming Endpoint"
+  icon="stream"
+  href="/api-reference/endpoint/stream"
 >
-  Learn about assistant configuration and customization.
+  Learn about real-time streaming with Server-Sent Events.
 </Card>
 
 <Card
