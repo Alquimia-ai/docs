@@ -1,0 +1,162 @@
+---
+title: Fair Forge
+---
+
+# Alquimia AI Fair Forge
+
+Alquimia AI Fair Forge es un componente de medición de desempeño diseñado para evaluar modelos y asistentes de IA. Proporciona métricas claras y útiles para entender y mejorar tus aplicaciones de IA mediante análisis y evaluación integral.
+
+## ¿Qué es Fair Forge?
+
+Fair Forge evalúa modelos y asistentes de IA a través de cuatro métricas principales:
+
+- **Conversacional**: Calidad y efectividad de las conversaciones.
+- **Humanidad**: Qué tan natural y humano es el asistente.
+- **Bias (Sesgo)**: Detección de sesgos en las respuestas.
+- **Contexto**: Capacidad de mantener y usar el contexto.
+
+## Instalación
+
+1. Activa tu entorno virtual:
+
+```shell
+source venv/bin/activate
+```
+
+2. Construye el paquete:
+
+```shell
+make package
+```
+
+3. Instala el paquete:
+
+```shell
+pip install dist/alquimia_fair_forge-0.0.1.tar.gz -q
+```
+
+## Estructura del Dataset
+
+El dataset debe tener el siguiente formato JSON:
+
+```json
+[
+  {
+    "session_id": "123",
+    "assistant_id": "456",
+    "language": "english",
+    "context": "You are a helpful assistant.",
+    "conversation": [
+      {
+        "qa_id": "123",
+        "query": "What is Alquimia AI?",
+        "ground_truth_assistant": "Is an startup that its aim is to construct assistants",
+        "assistant": "I'm so happy to answer your question. Alquimia AI Is an startup dedicated to construct assistants."
+      }
+    ]
+  }
+]
+```
+
+## Uso de las métricas
+
+### Ejemplo de Custom Retriever
+
+```python
+from fair_forge.schemas import Dataset
+from fair_forge import Retriever
+import json
+
+class CustomRetriever(Retriever):
+    def load_dataset(self) -> list[Dataset]:
+        datasets = []
+        with open("dataset.json") as infile:
+            for dataset in json.load(infile):
+                datasets.append(Dataset.model_validate(dataset))
+        return datasets
+```
+
+### Métricas disponibles
+
+#### Context
+
+```python
+from getpass import getpass
+from fair_forge.metrics import Context
+from pydantic import SecretStr
+
+judge_api_key = SecretStr(getpass("Please enter your Judge API key: "))
+
+metrics = Context.run(
+    CustomRetriever,
+    judge_api_key=judge_api_key,
+    verbose=True
+)
+```
+
+#### Humanity
+
+```python
+from fair_forge.metrics import Humanity
+
+metrics = Humanity.run(
+    CustomRetriever,
+    verbose=True
+)
+```
+
+#### Conversational
+
+```python
+from getpass import getpass
+from fair_forge.metrics import Conversational
+from pydantic import SecretStr
+
+judge_api_key = SecretStr(getpass("Please enter your Judge API key: "))
+
+metrics = Conversational.run(
+    CustomRetriever,
+    judge_api_key=judge_api_key,
+    verbose=True
+)
+```
+
+#### Bias (Sesgo)
+
+Para esta métrica necesitas desplegar un modelo Guardian compatible con API tipo OpenAI. Se recomienda IBM Granite Guardian.
+
+```python
+from getpass import getpass
+from fair_forge.metrics import Bias
+from pydantic import SecretStr
+import os
+
+guardian_api_key = SecretStr(getpass("Please enter your Guardian API key: "))
+GUARDIAN_URL = os.environ.get("GUARDIAN_URL")
+GUARDIAN_MODEL_NAME = os.environ.get("GUARDIAN_MODEL_NAME")
+GUARDIAN_API_KEY = guardian_api_key
+
+guardian_temperature = 0.7  # ejemplo
+max_tokens = 512  # ejemplo
+
+metrics = Bias.run(
+    CustomRetriever,
+    guardian_url=GUARDIAN_URL,
+    guardian_api_key=GUARDIAN_API_KEY,
+    guardian_model=GUARDIAN_MODEL_NAME,
+    guardian_temperature=guardian_temperature,
+    max_tokens=max_tokens,
+    verbose=True
+)
+```
+
+## Contribuir nuevas métricas
+
+1. Crea un archivo Python en `fair_forge/metrics` con tu métrica.
+2. Implementa la clase siguiendo la estructura base del README de fair-forge.
+3. Documenta tu métrica en `docs/journal.tex`.
+4. Haz un Pull Request.
+
+---
+
+Para más detalles, consulta la [documentación técnica](https://github.com/alquimia-ai/fair-forge) o el archivo `journal.pdf` en el repositorio. 
