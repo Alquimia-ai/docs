@@ -1,14 +1,16 @@
-# Mintlify Starter Kit
+# Alquimia Runtime Documentation
 
-Click on `Use this template` to copy the Mintlify starter kit. The starter kit contains examples including
+This repository contains the documentation for Alquimia Runtime, a powerful platform for dynamic AI assistants.
 
-- Guide pages
-- Navigation
-- Customizations
-- API Reference pages
-- Use of popular components
+## Features
 
-### Development
+- **Dynamic AI Assistants**: Interact with intelligent AI assistants through our chat API
+- **Session Management**: Maintain conversation context with session-based interactions
+- **File Attachments**: Support for file uploads and document processing
+- **Real-time Responses**: Get instant responses from AI assistants
+- **Assistant Configuration**: Retrieve detailed configuration and personality settings for each assistant
+
+## Development
 
 Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the documentation changes locally. To install, use the following command
 
@@ -22,7 +24,12 @@ Run the following command at the root of your documentation (where docs.json is)
 mintlify dev
 ```
 
-### Publishing Changes
+## API Endpoints
+
+- **POST /infer/chat/{assistant_id}**: Start a conversation with a specific AI assistant
+- **GET /chat/{assistant_id}**: Get detailed configuration information for a specific assistant
+
+## Publishing Changes
 
 Install our Github App to auto propagate changes from your repo to your deployment. Changes will be deployed to production automatically after pushing to the default branch. Find the link to install on your dashboard. 
 

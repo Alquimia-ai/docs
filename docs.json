@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Alquimia Runtime",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
@@ -20,18 +20,6 @@
               "quickstart",
               "development"
             ]
-          },
-          {
-            "group": "Essentials",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets",
-              "essentials/fair-forge"
-            ]
           }
         ]
       },
@@ -45,12 +33,10 @@
             ]
           },
           {
-            "group": "Endpoint Examples",
+            "group": "Endpoints",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/endpoint/chat",
+              "api-reference/endpoint/assistant-config"
             ]
           }
         ]

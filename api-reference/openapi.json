@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "OpenAPI Plant Store",
-    "description": "A sample API that uses a plant store as an example to demonstrate features in the OpenAPI specification",
+    "title": "Alquimia Runtime API",
+    "description": "API for interacting with dynamic AI assistants in Alquimia Runtime",
     "license": {
       "name": "MIT"
     },
@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "http://sandbox.mintlify.com"
+      "url": "https://runtime.apps.alquimiaai.hostmydemo.online"
     }
   ],
   "security": [
@@ -19,54 +19,26 @@
     }
   ],
   "paths": {
-    "/plants": {
-      "get": {
-        "description": "Returns all plants from the system that the user has access to",
+    "/infer/chat/{assistant_id}": {
+      "post": {
+        "description": "Start a conversation with a specific AI assistant",
         "parameters": [
           {
-            "name": "limit",
-            "in": "query",
-            "description": "The maximum number of results to return",
+            "name": "assistant_id",
+            "in": "path",
+            "description": "Unique identifier of the assistant to chat with",
+            "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             }
           }
         ],
-        "responses": {
-          "200": {
-            "description": "Plant response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Plant"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Unexpected error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "description": "Creates a new plant in the store",
         "requestBody": {
-          "description": "Plant to add to the store",
+          "description": "Conversation data to start",
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPlant"
+                "$ref": "#/components/schemas/ChatRequest"
               }
             }
           },
@@ -74,17 +46,37 @@
         },
         "responses": {
           "200": {
-            "description": "plant response",
+            "description": "Successful assistant response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Plant"
+                  "$ref": "#/components/schemas/ChatResponse"
                 }
               }
             }
           },
           "400": {
-            "description": "unexpected error",
+            "description": "Bad request error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Assistant not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -96,28 +88,43 @@
         }
       }
     },
-    "/plants/{id}": {
-      "delete": {
-        "description": "Deletes a single plant based on the ID supplied",
+    "/chat/{assistant_id}": {
+      "get": {
+        "description": "Get detailed configuration information for a specific assistant",
         "parameters": [
           {
-            "name": "id",
+            "name": "assistant_id",
             "in": "path",
-            "description": "ID of plant to delete",
+            "description": "Unique identifier of the assistant",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           }
         ],
         "responses": {
-          "204": {
-            "description": "Plant deleted",
-            "content": {}
+          "200": {
+            "description": "Assistant configuration retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantConfig"
+                }
+              }
+            }
           },
-          "400": {
-            "description": "unexpected error",
+          "404": {
+            "description": "Assistant not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -154,41 +161,214 @@
   },
   "components": {
     "schemas": {
-      "Plant": {
+      "ChatRequest": {
         "required": [
-          "name"
+          "query",
+          "session_id"
         ],
         "type": "object",
         "properties": {
-          "name": {
-            "description": "The name of the plant",
-            "type": "string"
+          "query": {
+            "description": "The user's query or message",
+            "type": "string",
+            "example": "Your query"
           },
-          "tag": {
-            "description": "Tag to specify the type",
-            "type": "string"
+          "session_id": {
+            "description": "Unique identifier for the conversation session",
+            "type": "string",
+            "example": "your-session-id"
+          },
+          "attachments": {
+            "description": "Optional attachments for the conversation",
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "default": []
           }
         }
       },
-      "NewPlant": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/Plant"
+      "ChatResponse": {
+        "type": "object",
+        "properties": {
+          "response": {
+            "description": "Assistant's response",
+            "type": "string"
           },
-          {
-            "required": [
-              "id"
-            ],
+          "session_id": {
+            "description": "Session identifier",
+            "type": "string"
+          },
+          "timestamp": {
+            "description": "Response timestamp",
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AssistantConfig": {
+        "type": "object",
+        "properties": {
+          "stream_id": {
+            "description": "Unique identifier for the conversation stream",
+            "type": "string"
+          },
+          "control_id": {
+            "description": "Control identifier for managing the conversation",
+            "type": "string"
+          },
+          "query": {
+            "description": "The original query that triggered this configuration",
+            "type": "string"
+          },
+          "parameters": {
+            "description": "Additional parameters for the assistant",
             "type": "object",
             "properties": {
-              "id": {
-                "description": "Identification number of the plant",
-                "type": "integer",
-                "format": "int64"
+              "tools": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "extra_data": {
+                "type": "object"
               }
             }
+          },
+          "config": {
+            "description": "Assistant configuration details",
+            "type": "object",
+            "properties": {
+              "nickname": {
+                "description": "Display name of the assistant",
+                "type": "string"
+              },
+              "description": {
+                "description": "Description of the assistant's purpose",
+                "type": "string"
+              },
+              "tags": {
+                "description": "Categorization tags for the assistant",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "requires_human_layer": {
+                "description": "Whether the assistant requires human intervention",
+                "type": "boolean"
+              },
+              "assistant_id": {
+                "description": "Unique identifier of the assistant",
+                "type": "string"
+              },
+              "integrations": {
+                "description": "External integrations configuration",
+                "type": "object"
+              },
+              "tools": {
+                "description": "Available tools for the assistant",
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "agents": {
+                "description": "Sub-agents configuration",
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "experts": {
+                "description": "Expert configurations",
+                "type": "object"
+              },
+              "dante": {
+                "description": "Dante AI model configuration",
+                "type": "object",
+                "properties": {
+                  "profile": {
+                    "type": "object",
+                    "properties": {
+                      "max_iterations": {
+                        "description": "Maximum number of iterations",
+                        "type": "integer"
+                      },
+                      "max_iteration_volume": {
+                        "description": "Maximum volume per iteration",
+                        "type": "integer"
+                      },
+                      "collection_id": {
+                        "description": "Knowledge collection identifier",
+                        "type": "string"
+                      },
+                      "system_prompt": {
+                        "description": "System prompt template",
+                        "type": "string"
+                      },
+                      "custom_clauses": {
+                        "description": "Dynamic personality and behavior configuration",
+                        "type": "object",
+                        "properties": {
+                          "identity": {
+                            "description": "Assistant identity definition",
+                            "type": "string"
+                          },
+                          "personality": {
+                            "description": "Assistant personality traits",
+                            "type": "string"
+                          },
+                          "purpose": {
+                            "description": "Assistant's primary purpose",
+                            "type": "string"
+                          },
+                          "rules": {
+                            "description": "Behavior rules and guidelines",
+                            "type": "string"
+                          },
+                          "knowledge": {
+                            "description": "Knowledge domain definition",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "description": "AI model type",
+                        "type": "string"
+                      },
+                      "connector": {
+                        "description": "Language model connector configuration",
+                        "type": "object"
+                      },
+                      "embeddings": {
+                        "description": "Embeddings model configuration",
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "attachments": {
+            "description": "File attachments for the conversation",
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "depth": {
+            "description": "Conversation depth level",
+            "type": "integer"
           }
-        ]
+        }
       },
       "Error": {
         "required": [

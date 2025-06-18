@@ -1,0 +1,95 @@
+---
+title: 'Chat with Assistant'
+openapi: 'POST /infer/chat/{assistant_id}'
+---
+
+Start a conversation with a specific AI assistant in Alquimia Runtime.
+
+## Additional Endpoints
+
+### Get Assistant Configuration
+
+You can also retrieve detailed configuration information for a specific assistant using:
+
+```
+GET /chat/{assistant_id}
+```
+
+This endpoint returns comprehensive information about the assistant's configuration, including:
+
+- **Stream and Control IDs**: For managing conversation flow
+- **Assistant Configuration**: Profile, personality, and behavior rules
+- **Integration Settings**: Tools, agents, and expert configurations
+- **Dante Configuration**: Advanced AI model settings and custom clauses
+
+### Response Format
+
+The assistant configuration endpoint returns a detailed JSON object with the following structure:
+
+```json
+{
+    "stream_id": "4aacb75d5d2a453ebf5dfbd65f61ef3b",
+    "control_id": "540fd45072094fe998429fc8a571503a",
+    "query": "What is alquimia AI?",
+    "parameters": {
+        "tools": [],
+        "extra_data": {}
+    },
+    "config": {
+        "nickname": "Alquimia AI Specialist",
+        "description": "An specialized agent about Alquimia AI related questions",
+        "tags": ["alquimia", "knowledge", "customer-faced"],
+        "requires_human_layer": false,
+        "assistant_id": "alquimia-twyd",
+        "integrations": {},
+        "tools": [],
+        "agents": [],
+        "experts": {},
+        "dante": {
+            "profile": {
+                "max_iterations": 10,
+                "max_iteration_volume": 10,
+                "collection_id": "alquimia-site",
+                "system_prompt": "## Identity\n{{custom_clauses['identity']}}\n\n## Personality\n{{custom_clauses['personality']}}\n\n## Purpose\n{{custom_clauses['purpose']}}\n\n## Behavior Rules\n{{custom_clauses['rules']}}\n\n## Domain Knowledge\n{{custom_clauses['knowledge']}}\n\nKnowledge:\n{{rag_context}}",
+                "extra_data": {},
+                "attachment_context": [],
+                "memory_strategy": {},
+                "evaluation_strategy": {},
+                "custom_clauses": {
+                    "identity": "You are an AI assistant working for **Alquimia AI**, a company offering AI-based solutions 🤖.",
+                    "personality": "You are friendly and use **emojis** 😎 to better explain your answers.",
+                    "purpose": "Your goal is to adress potencial clients visiting our website.",
+                    "rules": "You must follow these conduct guidelines:\n- Avoid answering queries that are unrelated to your purpose and the scope of the company.\n- If the user query is ambiguous, ask for more details or clarification.\n- You must always respond in the **same language** the user used in their last message.\n- Respond briefly and concisely, and avoid repeating yourself.",
+                    "knowledge": "Use only the provided information about Alquimia AI to respond; if it's insufficient, politely state that you don't have knowledge on the topic."
+                },
+                "client_tools": [],
+                "server_tools": [],
+                "server_agents": []
+            },
+            "config": {
+                "type": "generative-dynamic",
+                "connector": {
+                    "class_path": "langchain_groq.chat_models.ChatGroq",
+                    "params": {}
+                },
+                "embeddings": {
+                    "class_path": "langchain_huggingface.embeddings.HuggingFaceEndpointEmbeddings",
+                    "params": {}
+                }
+            }
+        }
+    },
+    "attachments": [],
+    "depth": 0
+}
+```
+
+### Key Configuration Fields
+
+- **`stream_id`**: Unique identifier for the conversation stream
+- **`control_id`**: Control identifier for managing the conversation
+- **`config.nickname`**: Display name of the assistant
+- **`config.description`**: Description of the assistant's purpose
+- **`config.tags`**: Categorization tags for the assistant
+- **`config.dante.profile.custom_clauses`**: Dynamic personality and behavior configuration
+- **`config.dante.config`**: AI model configuration and integrations 
