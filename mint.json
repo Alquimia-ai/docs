@@ -3,7 +3,7 @@
   "navigation": [
     {
       "group": "General",
-      "pages": ["README"]
+      "pages": ["introduction"]
     },
     {
       "group": "Architecture",
