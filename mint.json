@@ -1,0 +1,50 @@
+{
+  "name": "Argos Documentation",
+  "navigation": [
+    {
+      "group": "General",
+      "pages": ["README"]
+    },
+    {
+      "group": "Architecture",
+      "pages": ["architecture/overview"]
+    },
+    {
+      "group": "ADRs (Decisiones de Diseño)",
+      "pages": [
+        "adr/001-monolith-vs-separation",
+        "adr/002-pipeline",
+        "adr/003-config-propagation-webhook",
+        "adr/004-concurrent-per-camera-processing",
+        "adr/005-frame-storage-in-stories-buffer",
+        "adr/006-buffer-fetch-policy",
+        "adr/007-broker",
+        "adr/008-model",
+        "adr/009-event-schema"
+      ]
+    },
+    {
+      "group": "BFF",
+      "pages": [
+        "bff/API_CONTRACT",
+        "bff/PRD",
+        "bff/TECHNICAL_BLUEPRINT"
+      ]
+    },
+    {
+      "group": "Engine",
+      "pages": [
+        "engine/API_CONTRACT",
+        "engine/PRD",
+        "engine/TECHNICAL_BLUEPRINT"
+      ]
+    },
+    {
+      "group": "Web",
+      "pages": [
+        "web/PRD",
+        "web/TECHNICAL_BLUEPRINT"
+      ]
+    }
+  ]
+}
