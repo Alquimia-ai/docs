@@ -1,0 +1,72 @@
+sequenceDiagram
+    participant WEB as Web Client
+    participant OAUTH as OAuth Provider
+    participant BFF as BFF
+    participant E as Engine
+    participant REG as State Registry
+    participant CAM as Camera
+    participant MB as Message Broker
+    participant EVDB as Evidence DB
+
+    Note over WEB,OAUTH: Authentication
+    WEB->>OAUTH: Authorization Request
+    OAUTH-->>WEB: Access Token
+    WEB->>BFF: Request + Bearer Token
+    BFF->>BFF: Validate Token
+
+    Note over E,REG: Initialization (pull config + build registry)
+    E->>E: Create EngineStateRegistry
+    E->>BFF: GET /api/cameras/engine
+    BFF-->>E: Camera configs (connection + frame + observation + decision)
+    loop For each camera
+        E->>REG: add_camera(config)
+        REG->>REG: Create FrameBuffer + StoriesBuffer
+    end
+    E->>E: Start PreprocessorManager(registry)
+    E->>E: Start ProcessingManager(registry)
+
+    Note over WEB,REG: Runtime config change (webhook)
+    WEB->>BFF: PUT /api/cameras/:id
+    BFF->>BFF: Validate + save to DB
+    BFF->>E: POST /config/cameras (webhook)
+    alt camera:created
+        E->>REG: add_camera(config)
+        REG->>REG: Create FrameBuffer + StoriesBuffer
+        E->>E: PreprocessorManager.add_camera → start connector
+        E->>E: ProcessingManager.add_camera → build VLMProcessor + LLMDetector
+    else camera:updated
+        E->>REG: update_camera(config)
+        REG->>REG: Replace CameraConfig (new ObservationConfig + DecisionConfig)
+        E->>E: PreprocessorManager.update_camera → restart connector
+        E->>E: ProcessingManager.update_camera → rebuild VLMProcessor + LLMDetector
+    else camera:deleted
+        E->>REG: remove_camera(camera_id)
+        REG->>REG: Dispose FrameBuffer + StoriesBuffer
+        E->>E: PreprocessorManager.remove_camera → stop connector
+        E->>E: ProcessingManager.remove_camera → evict processor cache
+    end
+    E-->>BFF: 200 OK { status, cameras }
+    BFF-->>WEB: 200 OK (confirmed)
+
+    Note over CAM,EVDB: Event flow with buffering
+    loop For each frame batch
+        E->>CAM: Connect stream
+        CAM-->>E: Frames
+        E->>REG: Add frames to camera's FrameBuffer
+        E->>REG: Flush camera's FrameBuffer
+        REG-->>E: Frames batch
+        E->>REG: get_camera(id) → ObservationConfig (model + prompt)
+        E->>E: Process batch with VLMProcessor (per-camera model + prompt)
+        E->>E: Aggregate descriptions → stories
+        E->>REG: Add stories to camera's StoriesBuffer
+        E->>REG: Get batch from StoriesBuffer
+        REG-->>E: Stories batch
+        E->>REG: get_camera(id) → DecisionConfig (model + prompt + output_schema)
+        E->>E: Evaluate stories with LLMDetector (per-camera model + structured output)
+        alt Event detected
+            E->>MB: Publish(event)
+            MB->>BFF: Deliver(event)
+            BFF->>EVDB: Store evidence
+            BFF->>WEB: SSE: event
+        end
+    end

@@ -1,0 +1,8 @@
+flowchart LR
+    subgraph "Chosen Option: Separation"
+        E[Engine] --> CAM[Cameras]
+        E --> MB[Broker]
+        MB --> BFF[BFF]
+        BFF --> WEB[Web]
+        BFF --> DB[(DB)]
+    end
