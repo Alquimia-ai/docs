@@ -6,10 +6,12 @@ Documentation hub for the Alquimia platform. Root `docs.json` configures brandin
 
 | File | Role |
 | --- | --- |
-| **`docs.json`** (repo root) | **Only** file Mintlify uses for site config, navigation, and the product switcher for this hub. |
-| **`products/studio/hub-mintlify-product.json`** | Studio sidebar fragment; `$ref`’d from root `docs.json`; generated from `navigation.json` in Studio CI. |
-| **`products/studio/navigation.json`** | Studio’s canonical nav export for tooling and the `jq` step above—not read directly by Mintlify for the hub sidebar. |
+| **`docs.json`** (repo root) | **Only** file Mintlify uses for site-wide config, the product switcher, and the **Overview** product’s inline navigation. |
+| **`products/studio/navigation.json`** | Canonical **Studio** sidebar for the hub: flat `product`, `description`, and `groups`. Pulled into root `docs.json` with `{ "$ref": "products/studio/navigation.json", "icon": "…" }`. |
+| **`products/insight-hub/navigation.json`** | Same pattern for **InsightHub** (and future products use **`products/<id>/navigation.json`**). |
 | **`products/studio/docs.json`** | Shipped by Studio for **standalone** Studio docs; **ignored** here via **`.mintignore`** so it never competes with the root config. |
+
+Each `navigation.json` under `products/<id>/` must match what Mintlify expects for a single **`navigation.products[]`** entry (at minimum **`product`**, **`description`**, and **`groups`**). Icons and other allowed siblings live beside **`$ref`** in root **`docs.json`**.
 
 ## Language policy
 
@@ -21,42 +23,31 @@ Documentation hub for the Alquimia platform. Root `docs.json` configures brandin
 | Path | Owner |
 | --- | --- |
 | `docs.json` (root), `index.mdx`, `platform/**` | Platform / docs maintainers |
-| `products/studio/**` | **Studio** automation only (sync PRs), including **`hub-mintlify-product.json`** (Mintlify nav fragment for the central hub). |
+| `products/studio/**` | **Studio** automation only (sync PRs), including **`navigation.json`**, MDX, and assets. |
+| `products/insight-hub/**` | **InsightHub** automation only (sync PRs), including **`navigation.json`**, MDX, and assets. |
 | Future `products/<id>/**` | Matching product repo automation |
 
-Do not commit manual changes inside `products/studio/` except through Studio’s sync pull requests.
+Do not commit manual changes inside `products/<id>/` except through that product’s sync pull requests.
 
-## Studio navigation without editing root `docs.json`
+## Product navigation without editing root `docs.json`
 
-Root `docs.json` pulls the **Alquimia Studio** sidebar from a file under the synced tree using Mintlify’s **`$ref` merge**:
+Mintlify resolves **`$ref`** to a JSON file and **merges** any **sibling** keys from root `docs.json` on top of the referenced object (for example **`icon`**).
 
-- In `docs.json`, the Studio entry is: `{ "$ref": "products/studio/hub-mintlify-product.json", "icon": "layout-dashboard" }`.
-- Mintlify loads that JSON and merges sibling keys (`icon`) on top of the referenced object.
+- **Studio** in `navigation.products` uses **`$ref`: `products/studio/navigation.json`** plus an **`icon`** (see root **`docs.json`**).
+- **InsightHub** uses **`$ref`: `products/insight-hub/navigation.json`** the same way.
 
-You **cannot** `$ref` `navigation.json` directly: its shape is `{ "product": { "product", "description" }, "groups" }`, while one `navigation.products[]` item must be flat: `{ "product", "description", "groups" }`.
+When a product’s navigation or pages change, update **`products/<id>/navigation.json`** (and MDX) in that product’s sync. Root **`docs.json`** does **not** need to change for sidebar updates, as long as the **`$ref`** path stays the same.
 
-### What to do in the Studio repo workflow
+### Optional automation in this repo
 
-After you write `products/studio/navigation.json`, emit **`products/studio/hub-mintlify-product.json`** in the same job (so every push stays consistent). Example with `jq`:
+You can add a GitHub Action on pull requests that runs **`mint validate`** and **`mint broken-links`** (or JSON validation on `navigation.json`) for faster review. That does **not** require a second generated navigation file.
 
-```bash
-jq '{ product: .product.product, description: .product.description, groups: .groups }' \
-  products/studio/navigation.json > products/studio/hub-mintlify-product.json
-```
+## Reviewing a product sync PR (Studio, InsightHub, …)
 
-Commit or upload both files to the docs repo in the same sync. Root `docs.json` then stays stable; only files under `products/studio/` change.
-
-### Other options
-
-- **Workflow in this (`docs`) repo** that runs when `products/studio/navigation.json` changes and patches or regenerates `hub-mintlify-product.json` (or inlines into `docs.json`). Useful if you truly cannot change the Studio pipeline yet.
-- **Keep manual merges** only if you refuse both `$ref` and any automation; it does not scale when navigation changes often.
-
-## Reviewing a Studio sync PR
-
-1. Read the PR description and verify it is the expected Studio workflow.
-2. Inspect the diff under `products/studio/` (MDX, assets, `navigation.json`, **`hub-mintlify-product.json`**, and `docs.json` if present—hub builds ignore it when listed in `.mintignore`).
-3. Confirm **`hub-mintlify-product.json`** matches **`navigation.json`** (if the PR updates nav, the fragment should change in the same PR). If only `navigation.json` changed, ask for a regeneration step—the hub reads the fragment via `$ref`, not `navigation.json`.
-4. Run `mint validate` (and optionally `mint broken-links`) before merging.
+1. Read the PR description and confirm it matches the expected product workflow.
+2. Inspect the diff under the product directory: MDX, assets, **`navigation.json`**, and **`docs.json`** if present (hub builds ignore `products/studio/docs.json` when it is listed in **`.mintignore`**).
+3. Confirm **`navigation.json`** stays valid for Mintlify (paths under **`products/<id>/`** match real MDX files, structure is consistent).
+4. Run **`mint validate`** (and optionally **`mint broken-links`**) before merging.
 
 ## Mintlify
 
@@ -64,4 +55,4 @@ Connect this GitHub repository in the Mintlify dashboard; default branch `main`;
 
 ## Branding
 
-Theme, colors, favicon, and logos match Studio’s platform docs tokens (`theme: mint`, primary `#7C3AED`, and logo paths under `/logo/`).
+Theme, colors, favicon, and logos follow the shared tokens (`theme: mint`, primary `#7C3AED`, and logo paths under `/logo/`).
