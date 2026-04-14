@@ -1,0 +1,52 @@
+---
+title: "MCP Tools"
+description: "Connect the agent to external services it can call during a conversation."
+---
+
+**MCP Tools** assigns external tool servers to the agent. When configured, the agent can call these tools during a conversation to fetch data, take actions, or interact with external systems.
+
+{/* screenshot: agent-creation-mcp-tab */}
+
+## Selecting MCP servers
+
+Choose from the list of servers registered in [Settings → MCP Servers](/platform/settings/mcp-servers). You can assign multiple servers to a single agent.
+
+{/* screenshot: mcp-server-selector */}
+
+Each selected server exposes its full set of tools to the agent at runtime.
+
+<Note>
+  Adding MCP servers automatically switches the **evaluation strategy to `react`**. This is required — `react` is the strategy that enables the tool-use loop where the agent reasons, calls tools, observes results, and repeats. You can override this in [Dev Mode](/platform/agent-creation/dev-mode).
+</Note>
+
+## How tool use works at runtime
+
+When the agent receives a message:
+
+1. The Runtime fetches tool schemas from all assigned MCP servers
+2. These schemas (tool names, descriptions, input parameters) are injected into the LLM prompt
+3. If the LLM decides to call a tool, the Runtime executes it and returns the result
+4. The LLM incorporates the result and continues reasoning
+5. This loop repeats until the agent has enough information to respond
+
+
+## Writing good tool descriptions
+
+The agent decides **which tool to call and when** based on tool names and descriptions. If a tool description is vague, the agent may misuse it or ignore it entirely.
+
+Good tool description: *"Retrieves a customer's order history. Input: customer_id (string). Returns: list of orders with status, date, and amount."*
+
+Bad tool description: *"Gets orders."*
+
+Tool descriptions are set in the MCP server itself, not in Studio.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Agent-to-Agent" icon="network-wired" href="/platform/agent-creation/agent-to-agent">
+    Delegate tasks to other agents instead of tools.
+  </Card>
+  <Card title="Dev Mode" icon="code" href="/platform/agent-creation/dev-mode">
+    Override the evaluation strategy or customize how tools are presented in the prompt.
+  </Card>
+</CardGroup>

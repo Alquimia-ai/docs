@@ -1,0 +1,54 @@
+---
+title: "RAG"
+description: "How retrieval-augmented generation works in InsightHub explorations."
+---
+
+**RAG** (Retrieval-Augmented Generation) is the technique that grounds InsightHub's answers in your documents rather than relying on what the language model learned during training.
+
+## How it works
+
+Instead of asking the AI to answer from memory, RAG works like this:
+
+1. Your question is converted into a vector — a numerical representation of its meaning
+2. The system searches the topic's indexed documents for passages semantically similar to your question
+3. The most relevant passages are included in the AI's context
+4. The AI generates its answer using those passages as reference material
+
+The result is an answer drawn from your actual documents, with traceable sources.
+
+## What you see in InsightHub
+
+During an exploration, the **Thinking** indicator shows you:
+
+- **Retrieved passages** — which document chunks were fetched for your query
+- **Source attribution** — which document each passage came from
+- **Tool steps** — any additional calls the AI made to gather information
+
+{/* screenshot: insight-hub-rag-sources */}
+
+This transparency is intentional: you can see where an answer came from and notice when the AI is filling gaps versus citing your documents directly.
+
+## Why document quality matters
+
+Retrieval is only as good as the documents you provide:
+
+| Factor | Impact |
+|--------|--------|
+| **Relevance** | Documents that match the topic's subject produce better results than loosely related files |
+| **Text quality** | Clean text extracts more accurately than scanned images or heavily formatted PDFs |
+| **Coverage** | If the answer is in a document you haven't uploaded, the AI cannot retrieve it |
+
+<Tip>
+  If answers are vague or off-target, review the documents in your topic. Add missing files, verify all documents have **Ready** status, and make sure your question falls within the scope of the available content.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Documents" icon="file-text" href="/products/insight-hub/platform/documents">
+    Manage the documents that RAG searches during explorations.
+  </Card>
+  <Card title="Exploration" icon="message-circle" href="/products/insight-hub/platform/exploration">
+    See RAG in action during a live conversation.
+  </Card>
+</CardGroup>

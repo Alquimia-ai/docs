@@ -1,0 +1,82 @@
+---
+title: "Agents"
+description: "What an agent is, how it runs, and how to control its reasoning behavior."
+---
+
+An **agent** is a configurable AI assistant. It combines a language model with instructions, optional tools, memory, and knowledge — packaged as a reusable unit that the Alquimia Runtime can execute.
+
+## What makes up an agent
+
+| Component | What it does | Required |
+|-----------|-------------|----------|
+| **Language model** | The LLM that generates responses | Yes |
+| **System prompt** | Identity, personality, rules, and purpose | Yes (auto-generated or custom) |
+| **MCP tools** | External services the agent can call | No |
+| **Agent-to-Agent** | Other agents the agent can delegate to | No |
+| **Memory** | Conversation history (short-term) or persistent context (long-term) | No |
+| **Knowledge base** | Document collection for RAG-based answers | No |
+| **Integration channels** | WhatsApp, Email — external communication interfaces | No |
+| **Pre-processor** | Sentinels and empathy rules that run before the agent | No |
+
+## How agents run
+
+When a user sends a message:
+
+```
+User message
+    ↓
+Pre-processor (sentinels, empathy rules) — optional
+    ↓
+Memory retrieval — inject relevant history
+    ↓
+Knowledge retrieval — inject relevant document passages
+    ↓
+LLM call — prompt + context + tool schemas
+    ↓
+Tool execution (if needed) — ReAct loop
+    ↓
+Response returned to user
+```
+
+The Runtime handles all of this automatically based on the agent's configuration. You don't write any of this logic — you configure it in Studio.
+
+## Evaluation strategies
+
+The evaluation strategy controls how the agent **thinks**. This is one of the most important settings for an agent.
+
+{/* screenshot: evaluation-strategy-selector */}
+
+| Strategy | Description | Best for |
+|----------|-------------|----------|
+| `off` | Single LLM call, no reasoning loop | Simple Q&A, content generation |
+| `one-shoot` | One call with tool schemas injected | Structured output, simple tool use |
+| `tools` | LLM calls tools in a single round | Deterministic, tool-first workflows |
+| `react` | ReAct loop: reason → act → observe → repeat | Multi-step tool use, complex tasks |
+| `long-task` | Extended planning for complex, multi-step tasks | Research agents, autonomous workflows |
+
+<Note>
+  When you add MCP servers or other agents to your agent, Studio automatically switches the evaluation strategy to `react`. This ensures the agent can actually use its tools. You can override this manually in [Dev Mode](/platform/agent-creation/dev-mode).
+</Note>
+
+### The ReAct loop explained
+
+`react` is the most powerful strategy. The agent follows this cycle:
+
+1. **Reason** — "I need to look up the user's account to answer this"
+2. **Act** — calls the `get_account` tool from an MCP server
+3. **Observe** — receives the tool result
+4. **Reason again** — "Now I have the account info, I can answer"
+5. **Respond** — generates the final answer
+
+This continues until the agent has enough information to respond or hits its reasoning limit.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Creating an Agent" icon="plus" href="/platform/agent-creation/overview">
+    Step-by-step walkthrough of the agent creation wizard.
+  </Card>
+  <Card title="Dev Mode" icon="code" href="/platform/agent-creation/dev-mode">
+    Take full control of the system prompt and evaluation strategy.
+  </Card>
+</CardGroup>

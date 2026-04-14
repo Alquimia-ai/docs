@@ -1,0 +1,35 @@
+{
+  "product": "InsightHub",
+  "description": "Organize knowledge into topics, upload documents, and explore them through AI-powered conversations.",
+  "groups": [
+    {
+      "group": "Welcome",
+      "pages": [
+        "products/insight-hub/index",
+        "products/insight-hub/getting-started/what-is-insight-hub"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "products/insight-hub/getting-started/quick-start",
+        "products/insight-hub/getting-started/first-steps"
+      ]
+    },
+    {
+      "group": "Platform",
+      "pages": [
+        "products/insight-hub/platform/topics",
+        "products/insight-hub/platform/documents",
+        "products/insight-hub/platform/exploration"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "products/insight-hub/core-concepts/topics-and-documents",
+        "products/insight-hub/core-concepts/rag"
+      ]
+    }
+  ]
+}

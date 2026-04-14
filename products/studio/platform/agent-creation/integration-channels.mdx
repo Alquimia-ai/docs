@@ -1,0 +1,66 @@
+---
+title: "Integration Channels"
+description: "Connect the agent to external communication platforms like WhatsApp and Email."
+---
+
+Integration Channels let your agent send and receive messages through external platforms — beyond the Studio test interface and direct API calls.
+
+{/* screenshot: agent-creation-channels-tab */}
+
+## WhatsApp
+
+Connects via the **WhatsApp Business API** (Meta Cloud API or on-premise).
+
+{/* screenshot: whatsapp-channel-config */}
+
+| Field | Description |
+|-------|-------------|
+| **API Base URL** | Your WhatsApp Business API endpoint (e.g., `https://graph.facebook.com/v18.0`) |
+| **Access Token** | Meta API token with `whatsapp_business_messaging` permissions. Stored as a secret. |
+| **Phone Number ID** | The numeric ID of the phone number linked to your WhatsApp Business account |
+
+
+## Email
+
+Connects via **SMTP** for outbound email delivery.
+
+{/* screenshot: email-channel-config */}
+
+| Field | Description |
+|-------|-------------|
+| **Username** | SMTP authentication username. Stored as a secret. |
+| **Password** | SMTP authentication password. Stored as a secret. |
+| **Server** | SMTP hostname (e.g., `smtp.gmail.com`, `smtp.sendgrid.net`) |
+| **Port** | SMTP port (typically `587` for TLS, `465` for SSL, `25` for plain) |
+| **SSL** | Enable TLS/SSL encryption |
+| **Response Template** | Jinja2 HTML template for outgoing emails. Use `{{ response }}` to inject the agent's reply. |
+
+### Email template example
+
+```html
+<html>
+<body>
+  <p>Hello,</p>
+  <p>{{ response }}</p>
+  <p>Best regards,<br>Acme Support</p>
+</body>
+</html>
+```
+
+## Credential handling
+
+All credential fields in integration channels are write-only after saving. The stored value is replaced with a `$secretRef`. This means:
+
+- The field will appear **empty** when you edit the channel
+- **Leave it blank** to keep the existing secret
+- **Enter a new value** only if you want to replace the credential
+
+<Note>
+  If you edit an integration channel and accidentally enter an empty value in a credential field, the existing secret will be cleared. Always leave credential fields blank when editing unless you intend to rotate them.
+</Note>
+
+## Next steps
+
+<Card title="Secrets" icon="key" href="/core-concepts/secrets">
+  Understand how credentials are stored and referenced securely.
+</Card>

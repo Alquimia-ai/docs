@@ -1,0 +1,56 @@
+---
+title: "Ecosystem Overview"
+description: "All the services that make up the Alquimia stack, their ports, and what they do."
+---
+
+The Alquimia stack is a set of services that work together. When you run `docker compose up`, all of these start automatically. You only need to interact with Studio and occasionally the others when debugging.
+
+{/* screenshot: ecosystem-services-running */}
+
+## Services at a glance
+
+| Service | Default URL | Description |
+|---------|-------------|-------------|
+| **Runtime** | http://localhost:8080 | Event-driven agent execution platform. Orchestrates multi-agent LLM runs in containerized environments, including context-aware prompting, memory strategies, RAG-aware retrieval flows, and complex tool execution. Designed for Kubernetes and OpenShift. Visit `/docs` for the Swagger API. |
+| **Twyd** | http://localhost:8000 | Knowledge base service. Manages topics, file ingestion, and vector search for RAG. |
+| **Studio** | http://localhost:3001 | This app — the visual agent builder. Login via Keycloak or Lite. **Observability:** agent metrics dashboards here, on OpenTelemetry standards, backed by **Prometheus** metrics. |
+| **Insight Hub** | http://localhost:3000 | Knowledge exploration — Topics, documents, and streaming AI chat (separate from agent observability). |
+| **MinIO** | http://localhost:19001 | S3-compatible object storage for files and documents. Console at port 19001. |
+| **Qdrant** | http://localhost:6333 | Vector database for **Knowledge Base** semantic search and related runtime retrieval (e.g. summarized context when using strategies that persist to collections). |
+| **Postgres** | internal | Relational database used by Twyd and Insight Hub. |
+| **Redis** | internal | Cache and message queue used by the Runtime. |
+| **MongoDB** | localhost:27017 | Studio's database. Stores models, MCP servers, embeddings configurations, and settings. |
+
+<Note>
+  You don't need to interact with most of these services directly. Studio orchestrates everything through the Registry API. Use **Studio** for building agents and for **metrics dashboards**; open **Insight Hub** (3000) when you want topic-based knowledge exploration and chat.
+</Note>
+
+## Port configuration
+
+All ports are configurable via environment variables in your `.env` file before running `docker compose up`.
+
+| Variable | Default | Service |
+|----------|---------|---------|
+| `RUNTIME_HOST_PORT` | 8080 | Runtime |
+| `STUDIO_HOST_PORT` | 3001 | Studio |
+| `INSIGHT_HUB_HOST_PORT` | 3000 | Insight Hub |
+| `OLLAMA_HOST_PORT` | 11434 | Ollama (local models profile) |
+
+## Data storage
+
+The stack persists data in Docker volumes:
+
+- **MongoDB** — Studio's settings (models, MCP, embeddings)
+- **Postgres** — Twyd and Insight Hub application data (topics, documents, tenants, chat-related persistence)
+- **Qdrant** — Vector storage/search for knowledge base and workloads that use embeddings-backed retrieval
+- **MinIO** — Uploaded documents and files
+
+<Warning>
+  Running `docker compose down -v` removes all volumes and **deletes all persisted data**, including your agents, settings, and knowledge base. Use `docker compose down` (without `-v`) to stop services while keeping data.
+</Warning>
+
+## Next steps
+
+<Card title="Installation" icon="rocket" href="/getting-started/installation">
+  Get the full stack running with a single command.
+</Card>

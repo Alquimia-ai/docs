@@ -1,0 +1,71 @@
+{
+  "product": "Studio",
+  "description": "Build, customize, and manage AI assistants on your own infrastructure.",
+  "groups": [
+    {
+      "group": "Welcome",
+      "pages": [
+        "products/studio/index",
+        "products/studio/getting-started/what-is-alquimia"
+      ]
+    },
+    {
+      "group": "Getting Started",
+      "pages": [
+        "products/studio/getting-started/installation",
+        "products/studio/getting-started/first-login"
+      ]
+    },
+    {
+      "group": "Platform",
+      "pages": [
+        "products/studio/platform/dashboard",
+        {
+          "group": "Create agent",
+          "pages": [
+            "products/studio/platform/agent-creation/overview",
+            "products/studio/platform/agent-creation/profile",
+            "products/studio/platform/agent-creation/model-selection",
+            "products/studio/platform/agent-creation/mcp-tools",
+            "products/studio/platform/agent-creation/agent-to-agent",
+            "products/studio/platform/agent-creation/knowledge-base",
+            "products/studio/platform/agent-creation/integration-channels",
+            "products/studio/platform/agent-creation/pre-processor",
+            "products/studio/platform/agent-creation/memory",
+            "products/studio/platform/agent-creation/dev-mode"
+          ]
+        },
+        {
+          "group": "Settings",
+          "pages": [
+            "products/studio/platform/settings/overview",
+            "products/studio/platform/settings/models",
+            "products/studio/platform/settings/mcp-servers",
+            "products/studio/platform/settings/embeddings",
+            "products/studio/platform/settings/sentinels"
+          ]
+        },
+        "products/studio/platform/discover"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "products/studio/core-concepts/agents",
+        "products/studio/core-concepts/workspaces",
+        "products/studio/core-concepts/secrets"
+      ]
+    },
+    {
+      "group": "Ecosystem",
+      "pages": [
+        "products/studio/getting-started/ecosystem-overview",
+        "products/studio/reference/ecosystem-services"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": ["products/studio/reference/roles-and-permissions"]
+    }
+  ]
+}

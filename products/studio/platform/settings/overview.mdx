@@ -1,0 +1,42 @@
+---
+title: "Settings Overview"
+description: "Configure the building blocks that agents are assembled from."
+---
+
+Settings is where you configure the infrastructure your agents depend on. **Before creating your first agent, configure at least one model here.**
+
+{/* screenshot: settings-page-overview */}
+
+Think of Settings as the toolbox. Agents are built from the tools in the box. You define the tools once, and any agent in the workspace can use them.
+
+## The four settings sections
+
+<CardGroup cols={2}>
+  <Card title="Models Registry" icon="cpu" href="/platform/settings/models">
+    Register LLM providers and their API credentials. Every agent needs a model.
+  </Card>
+  <Card title="MCP Servers" icon="plug" href="/platform/settings/mcp-servers">
+    Connect external tools — APIs, databases, and services agents can call.
+  </Card>
+  <Card title="Embeddings Models" icon="vector-square" href="/platform/settings/embeddings">
+    Configure vector models for **Knowledge Base** (document RAG).
+  </Card>
+  <Card title="Sentinels" icon="shield" href="/platform/settings/sentinels">
+    Define safety and pre-processing agents that intercept requests before your main agent runs.
+  </Card>
+</CardGroup>
+
+## Recommended setup order
+
+1. **Models** — required to create any agent
+2. **Embeddings** — required for **Knowledge Base** document RAG (long-term *conversation* memory is configured under the agent **Memory** step with **Neuralyzer** or **CoD Summarizer**, not here)
+3. **MCP Servers** — required if you want agents to use external tools
+4. **Sentinels** — optional, for safety and moderation workflows
+
+<Note>
+  All settings are scoped to the active workspace. If you switch to a different workspace, you'll start with an empty settings configuration for that workspace.
+</Note>
+
+## Bootstrap from Docker Compose
+
+Cloud models are not pre-filled from `.env`—add them in **Settings → Models Registry**. If you use the **`with-local-models`** profile and set `OLLAMA_MODELS` in `.env`, `studio-init` can register those Ollama models for you; still confirm they appear under Models and Embeddings before you create an agent.

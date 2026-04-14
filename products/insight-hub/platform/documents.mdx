@@ -1,0 +1,57 @@
+---
+title: "Documents"
+description: "Upload and manage the documents that form a topic's knowledge base."
+---
+
+Documents are the source material for a topic. When you upload a file, InsightHub sends it for processing: the content is extracted, split into passages, and indexed for semantic retrieval. Once processed, the document is available to the AI during explorations.
+
+{/* screenshot: insight-hub-documents-list */}
+
+## Uploading documents
+
+Open a topic and drag files into the upload area, or click to browse.
+
+**Supported formats:**
+- PDF
+- Markdown (`.md`)
+- Plain text (`.txt`)
+
+<Tip>
+  Processing happens asynchronously. For large files, it may take a moment before the status updates to **Ready**.
+</Tip>
+
+## Document status
+
+| Status | What it means |
+|--------|--------------|
+| **Processing** | The file has been received and is being ingested. |
+| **Ready** | The document is indexed and available for explorations. |
+| **Failed** | Processing encountered an error. Check the file format and try reuploading. |
+
+{/* screenshot: insight-hub-document-status */}
+
+## Viewing document details
+
+Click on a document to see its metadata: filename, upload date, file size, and processing status.
+
+## Removing a document
+
+To remove a document from a topic, open its menu and select **Delete**. The AI will no longer reference it in new explorations.
+
+<Warning>
+  Deleting a document is permanent. Existing exploration history that referenced it is preserved, but new explorations will no longer have access to that content.
+</Warning>
+
+## Tips for better retrieval
+
+The quality of exploration answers depends directly on the documents you upload:
+
+- **Use clean text** — scanned images in PDFs or heavily formatted layouts extract less accurately than plain text
+- **Keep topics focused** — loosely related documents add noise to retrieval results
+- **Check status before exploring** — only documents with **Ready** status are searchable
+
+## Next steps
+
+<Card title="Start an exploration" icon="message-circle" href="/products/insight-hub/platform/exploration">
+  Once your documents are indexed, explore the topic through AI conversation.
+</Card>

@@ -1,0 +1,61 @@
+---
+title: "What is Alquimia"
+description: "Understand the Alquimia ecosystem and how Studio fits into it."
+---
+
+Alquimia is a complete AI runtime ecosystem for building and running enterprise-ready AI agents with a focus on transparency, consistency, and flexibility. **Studio** is the visual interface where you configure agents. The **Runtime** is where they actually run. These two work together — you don't need to know about the others to build agents, but understanding the big picture helps.
+
+{/* screenshot: alquimia-ecosystem-diagram */}
+
+## The ecosystem at a glance
+
+| Component | Role |
+|-----------|------|
+| **Studio** | Agent builder — this app. Design, configure, and manage agents. View agent metrics and health here: dashboards are fed by metrics and follow **OpenTelemetry** conventions. |
+| **Runtime** | Event-driven execution platform for agents in containerized environments. Orchestrates multi-agent runs, context-aware prompting, memory strategies, and complex tool execution. Built on Knative for Kubernetes and designed for OpenShift deployments. |
+| **Twyd** | Knowledge base service. Handles document ingestion, topic management, and vector search. |
+| **Insight Hub** | AI-powered knowledge exploration — **Topics**, document upload, and streaming chat over the runtime (not an observability product). |
+
+## The agent lifecycle
+
+When you build an agent in Studio, here's what happens end-to-end:
+
+```
+Studio          →   Registry API       →    Runtime
+(you configure)     (config stored)         (agent executes)
+```
+
+**Observability** stays on OpenTelemetry-style traces, metrics, and logs. **Prometheus** metrics feed the **agent metrics dashboards in Alquimia Studio** — that is where you review agent health and usage, not in Insight Hub.
+
+1. You configure an agent in Studio (model, system prompt, tools, memory, etc.)
+2. Studio saves the configuration to the **Registry API** — the central store for all agent configs
+3. When a user sends a message, the Runtime fetches the agent config from the Registry
+4. The Runtime executes the agent: constructs the prompt, calls the LLM, runs tools if needed, applies memory
+5. Telemetry from the run is available through the observability pipeline above; use Studio’s dashboards to dig into metrics tied to your agents
+
+## How Studio fits in
+
+Think of **Studio** as where you design and operate agents, and the **Runtime** as where they come to life. Both are part of the same product story—you stay in Studio for the full workflow; the Runtime is the engine behind it.
+
+**Studio** is your home for:
+
+- **Designing agents** — everything you set in the UI becomes runtime-ready configuration in the Registry (model, prompts, tools, memory, channels, and more).
+- **Workspace operations** — models, MCP servers, embeddings, sentinels, and workspace boundaries, in one place.
+- **Observability** — metrics and health for your agents, surfaced in Studio’s dashboards.
+
+**The Runtime** carries the load for a live conversation: it loads config from the Registry, calls the LLM, runs tools and memory, and streams replies. When you use **Try Me**, Studio is your console—the chat itself is powered by the Runtime, so what you see is what end users get under the same stack.
+
+<Note>
+  You rarely need to call the Runtime, Registry, or Twyd APIs by hand; Studio talks to them for you. When something misbehaves, it helps to know which layer owns what so you know where to look next.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Ecosystem Overview" icon="diagram-project" href="/getting-started/ecosystem-overview">
+    See every service, its port, and what it does.
+  </Card>
+  <Card title="Installation" icon="rocket" href="/getting-started/installation">
+    Get the stack running locally with Docker Compose.
+  </Card>
+</CardGroup>

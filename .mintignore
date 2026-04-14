@@ -1,0 +1,3 @@
+# Synced from Studio; the central site uses only the root docs.json.
+# This file is kept for reference inside the Studio repo and would conflict with hub-only settings if Mintlify ever picked it up.
+products/studio/docs.json

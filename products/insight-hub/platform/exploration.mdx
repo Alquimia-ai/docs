@@ -1,0 +1,64 @@
+---
+title: "Exploration"
+description: "Start an AI conversation grounded in a topic's documents."
+---
+
+An **exploration** is a conversational AI session scoped to a specific topic. You ask questions in natural language and the AI responds with answers grounded in the topic's documents. Every retrieval step and tool call is visible as it happens.
+
+{/* screenshot: insight-hub-exploration-chat */}
+
+## Starting an exploration
+
+From the topic detail view, click **New Exploration**. You can also open an existing exploration from the explorations list to continue a previous conversation.
+
+The exploration view opens with a chat interface pre-scoped to the current topic.
+
+## Sending a message
+
+Type your question in the input field and press **Enter** (or click **Send**). The AI:
+
+1. Retrieves the most relevant passages from the topic's documents
+2. Constructs a response grounded in that content
+3. Streams the answer back in real time
+
+{/* screenshot: insight-hub-exploration-streaming */}
+
+## Reasoning steps and tool calls
+
+While a response is streaming, expand the **Thinking** indicator to see what the AI is doing:
+
+- Which document passages were retrieved
+- What tools were invoked and what they returned
+- The reasoning the AI applied before forming its answer
+
+{/* screenshot: insight-hub-exploration-tool-calls */}
+
+This gives you full visibility into how the answer was formed — not just the final text output.
+
+<Note>
+  The underlying execution is handled by the Alquimia Runtime. InsightHub renders the live event stream from the Runtime, so what you see is exactly what is happening at each step.
+</Note>
+
+## Voice interaction
+
+InsightHub supports voice input and output:
+
+- **Speech to text** — click the microphone icon to dictate your question instead of typing
+- **Text to speech** — toggle the speaker icon to have responses read aloud
+
+{/* screenshot: insight-hub-voice-controls */}
+
+## Exploration history
+
+Explorations are saved automatically. Return to any topic to see previous explorations listed, and click one to continue the conversation from where you left off. Each exploration maintains its own history independently.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Topics and documents" icon="layers" href="/products/insight-hub/core-concepts/topics-and-documents">
+    Understand how topics and documents shape what the AI knows.
+  </Card>
+  <Card title="RAG" icon="search" href="/products/insight-hub/core-concepts/rag">
+    Learn how retrieval-augmented generation powers exploration answers.
+  </Card>
+</CardGroup>

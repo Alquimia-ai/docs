@@ -1,0 +1,95 @@
+---
+title: "Dev Mode"
+description: "Advanced editing for custom clauses (dynamic fields or raw JSON), manual system prompt, and evaluation strategy."
+---
+
+Dev Mode is for operators who need full control over **Custom Rules** (custom clauses), the **system prompt**, and **evaluation strategy** without the normal guardrails.
+
+{/* screenshot: dev-mode-toggle */}
+
+Turn **Dev Mode (advanced)** on with the switch in the **Custom Rules** header. That single flag unlocks advanced clause editing and, farther down the Profile section, the **evaluation strategy** selector and **system prompt** controls that are hidden in standard mode.
+
+## Custom clauses: Dynamic Fields vs Raw JSON
+
+With Dev Mode on, **Custom Rules** no longer use the compact default form. Instead you choose an **Editing mode**:
+
+| Mode | What you do |
+|------|-------------|
+| **Dynamic Fields** | Every clause is its own **large text field**. You can **edit any value**, **remove a field** (including standard ones you do not need), and use **Add custom field** to create **new clause keys** beyond identity, personality, purpose, etc. |
+| **Raw JSON** | Edit the entire `custom_clauses` map as **JSON** in the code editor (valid object of string values). Use this for bulk copy/paste, merges, or scripted content. |
+
+In both modes the clauses object is **fully yours**: nothing is read-only, and fields you do not want can be **deleted** (Dynamic: per-field delete; Raw: remove keys from the JSON).
+
+<Note>
+  **Standard mode** only supports the usual fixed clause keys. Dev Mode is what makes **arbitrary keys** and **removals** possible.
+</Note>
+
+{/* screenshot: dev-mode-raw-dynamic */}
+
+## Manual system prompt
+
+With Dev Mode enabled, the **System Prompt** block appears. Turn on **Manage system prompt manually** to write the prompt yourself in the textarea instead of using auto-generated text from the clauses.
+
+You can still insert `{{identity}}`, `{{personality}}`, etc. from the tag helper so the manual prompt **pulls live values** from whatever keys exist in Custom Rules (including custom keys you added in Dynamic Fields or Raw JSON).
+
+## System prompt variables
+
+| Variable | Typical source clause |
+|----------|----------------------|
+| `{{identity}}` | `identity` |
+| `{{personality}}` | `personality` |
+| `{{purpose}}` | `purpose` |
+| `{{knowledge}}` | `knowledge` |
+| `{{rules}}` | `rules` |
+| `{{response_format}}` | `response_format` |
+
+If you add custom clause keys, reference them in the manual prompt with the same `{{key}}` pattern.
+
+Example:
+
+```
+<system>
+You are {{identity}}.
+Tone: {{personality}}
+
+Your primary objective: {{purpose}}
+
+Domain knowledge:
+{{knowledge}}
+
+Operating rules:
+{{rules}}
+
+Output format:
+{{response_format}}
+</system>
+```
+
+<Tip>
+  This pattern works well for Claude-style models with clear XML sections. You keep clause content in **Dynamic Fields** or **Raw JSON**, and structure the prompt manually above.
+</Tip>
+
+## Evaluation strategy override
+
+With Dev Mode on, Studio **stops auto-forcing** `react` when you add MCP servers or Agent-to-Agent links. You set **evaluation strategy** explicitly and it stays where you put it until you change it.
+
+## Leaving Dev Mode
+
+<Warning>
+  **Disabling Dev Mode** returns Custom Rules to the **standard form**. If you added **extra clause keys** (not in the default set), Studio warns you that those fields will be **dropped** when you confirm; only the default clause keys are kept, with your values merged in. If you need that data, **copy Raw JSON** before switching off.
+</Warning>
+
+Turning Dev Mode off also **replaces a fully manual system prompt** with the **auto-generated** prompt from your clauses unless you have handled that separately — **copy anything you must keep** before toggling.
+
+## When to use Dev Mode
+
+- You need **custom clause keys** or want to **remove** standard clauses you do not use.
+- You want **full JSON** control over clauses for migrations or diffs.
+- You need a **fixed evaluation strategy** that must not be overridden by tool/A2A autoswitching.
+- You are **authoring the system prompt by hand** and still want clause variables injected.
+
+## Next steps
+
+<Card title="Back to Agent Overview" icon="arrow-left" href="/platform/agent-creation/overview">
+  Review the full wizard overview and what’s available in each step.
+</Card>

@@ -1,0 +1,62 @@
+---
+title: "Profile"
+description: "Define the agent's identity, personality, purpose, and reasoning behavior."
+---
+
+**Profile** is where your agent gets its character. It controls who the agent is, how it behaves, and how it thinks.
+
+{/* screenshot: agent-creation-profile-tab */}
+
+## Basic information
+
+| Field | Description |
+|-------|-------------|
+| **Name** | The agent's display name. Shown on the dashboard card, in the test drawer, and in any UI that lists agents. |
+| **Description** | A short summary of what the agent does. Shown on the dashboard and used as the agent's description when it's used in Agent-to-Agent configurations. |
+| **Tags** | Optional labels for organizing agents (e.g., `support`, `finance`, `internal`, `v2`). |
+
+## Custom Clauses
+
+Custom Clauses are the six building blocks of an agent's system prompt. When Dev Mode is off, Studio assembles these into a complete system prompt automatically.
+
+{/* screenshot: custom-clauses-form */}
+
+| Clause | What it defines | Example |
+|--------|----------------|---------|
+| **Identity** | Who the agent is | "You are Maya, a customer support assistant for Acme Corp" |
+| **Personality** | Tone, style, and communication approach | "You are warm, concise, and professional. Avoid jargon." |
+| **Purpose** | The agent's primary goal | "Your goal is to help customers resolve billing questions and account issues" |
+| **Knowledge** | What the agent knows and doesn't know | "You have expertise in our product catalog and pricing. You do not have access to real-time inventory." |
+| **Rules** | Behavioral constraints and guardrails | "Never share other customers' data. Always escalate legal questions to the legal team." |
+| **Response Format** | How answers should be structured | "Respond in plain text. Use bullet points for multi-step instructions. Keep answers under 200 words." |
+
+<Tip>
+  You don't need to fill all six clauses. **Identity** and **Purpose** are the most impactful starting points. Add others as you find the agent behaving in unexpected ways.
+</Tip>
+
+## Evaluation strategy
+
+Controls how the agent reasons and whether it can use tools. See [Agents → Evaluation Strategies](/core-concepts/agents#evaluation-strategies) for the full breakdown.
+
+{/* screenshot: evaluation-strategy-selector */}
+
+<Note>
+  This field is set automatically when you add MCP servers or other agents to your configuration. Studio switches to `react` to enable the tool-use loop. You can override this manually in [Dev Mode](/platform/agent-creation/dev-mode).
+</Note>
+
+## Structured output
+
+An optional JSON schema that forces the agent to return data in a specific format instead of free-form text.
+
+Use this when:
+- The agent feeds into another system or pipeline that expects structured data
+- You want to extract specific fields from the agent's analysis
+- You're building a classification or extraction agent
+
+Example: An agent that always returns `{ "intent": "...", "confidence": 0.0, "suggested_action": "..." }`.
+
+## Next steps
+
+<Card title="Inference" icon="cpu" href="/platform/agent-creation/model-selection">
+  Select the model that powers this agent.
+</Card>

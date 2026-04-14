@@ -1,0 +1,57 @@
+---
+title: "Workspaces"
+description: "Isolated environments for organizing agents, settings, and configurations by team or use case."
+---
+
+A **workspace** is an isolated container for everything in Studio: agents, models, MCP servers, embeddings, and sentinels. Think of it as a project or environment.
+
+## Why workspaces exist
+
+Different teams, clients, or use cases need separate configurations. A customer support team and a finance team shouldn't share the same agents, models, or API keys. Workspaces enforce this separation cleanly.
+
+## Switching workspaces
+
+Use the **workspace switcher** at the top of the sidebar to switch between workspaces.
+
+{/* screenshot: workspace-switcher */}
+
+Everything you see in Studio — agents, settings, the Discover feed — is scoped to the active workspace. Switching workspaces is like switching projects.
+
+<Warning>
+  When you switch workspaces, the models, MCP servers, embeddings, and sentinels you see all change. Each workspace starts with its own empty settings configuration.
+</Warning>
+
+## OCI addressing
+
+Workspaces use OCI (Open Container Initiative) addressing — the same convention used by container registries like Docker Hub.
+
+Each workspace has:
+- **Namespace** — your organization scope (e.g., `alquimia`, set by `NEXT_PUBLIC_DEFAULT_NAMESPACE`)
+- **Name** — workspace identifier (e.g., `customer-support`)
+- **Full address** — `namespace/name` (e.g., `alquimia/customer-support`)
+
+This addressing enables the [Discover & Publish](/platform/discover) feature — workspaces can be published to an OCI registry and installed by others, just like container images.
+
+## Workspace naming rules
+
+Workspace names are sanitized to OCI format automatically:
+- Lowercase only
+- Letters, numbers, hyphens, dots, and underscores allowed
+- Spaces become hyphens
+
+The display name is restored to title case in the UI. The raw name stored in the registry is always OCI-compliant.
+
+## Roles within a workspace
+
+Access to a workspace is controlled by your RBAC role. If your deployment uses Keycloak, roles are assigned there. See [Roles & Permissions](/reference/roles-and-permissions) for the full breakdown.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Discover & Publish" icon="compass" href="/platform/discover">
+    Publish your workspace or install from the community catalog.
+  </Card>
+  <Card title="Roles & Permissions" icon="users" href="/reference/roles-and-permissions">
+    Control who can access and modify your workspaces.
+  </Card>
+</CardGroup>

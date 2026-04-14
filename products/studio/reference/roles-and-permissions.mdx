@@ -1,0 +1,52 @@
+---
+title: "Roles & Permissions"
+description: "Access control roles in Alquimia Studio and what each can do."
+---
+
+Studio uses role-based access control (RBAC). When using **Keycloak**, roles and groups are read from the JWT token at login — no additional configuration needed in Studio.
+
+## Roles
+
+| Role | Scope | Description |
+|------|-------|-------------|
+| `platform-admin` | Platform-wide | Full access to everything. Can manage workspaces, users, and all platform settings. |
+| `org-admin` | Organization | Can manage workspace settings, agents, and workspace members within their organization. |
+| `editor` | Workspace | Can create, edit, and delete agents and workspace settings (models, MCP, embeddings, sentinels). |
+| `viewer` | Workspace | Read-only access. Can view agents and settings but cannot create, edit, or delete anything. |
+
+## Permissions matrix
+
+| Action | viewer | editor | org-admin | platform-admin |
+|--------|--------|--------|-----------|----------------|
+| View agents | ✅ | ✅ | ✅ | ✅ |
+| Test agents (Try Me) | ✅ | ✅ | ✅ | ✅ |
+| Create agents | ❌ | ✅ | ✅ | ✅ |
+| Edit agents | ❌ | ✅ | ✅ | ✅ |
+| Delete agents | ❌ | ✅ | ✅ | ✅ |
+| Enable/disable agents | ❌ | ✅ | ✅ | ✅ |
+| View settings | ✅ | ✅ | ✅ | ✅ |
+| Add/edit models | ❌ | ✅ | ✅ | ✅ |
+| Add/edit MCP servers | ❌ | ✅ | ✅ | ✅ |
+| Add/edit embeddings | ❌ | ✅ | ✅ | ✅ |
+| Add/edit sentinels | ❌ | ✅ | ✅ | ✅ |
+| Publish workspace | ❌ | ✅ | ✅ | ✅ |
+| Manage workspace members | ❌ | ❌ | ✅ | ✅ |
+| Create/delete workspaces | ❌ | ❌ | ✅ | ✅ |
+| Platform-wide administration | ❌ | ❌ | ❌ | ✅ |
+
+## Assigning roles
+
+If you're using **Keycloak**, roles are assigned there:
+
+1. Log in to the Keycloak admin console
+2. Navigate to your realm → Users
+3. Select the user → Role mappings
+4. Assign the appropriate role from the client roles list
+
+<Note>
+  If a UI element is greyed out or a feature is missing from your view, your role doesn't have permission for that action. Contact your platform administrator to request elevated access.
+</Note>
+
+## Groups
+
+In addition to roles, **Keycloak groups** (when enabled) are extracted from the JWT and available in the session. Groups can be used for workspace isolation and organizational scoping. Consult your platform administrator for your organization's group structure.

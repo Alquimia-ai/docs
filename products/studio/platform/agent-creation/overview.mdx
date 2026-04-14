@@ -1,0 +1,51 @@
+---
+title: "Creating an Agent"
+description: "Walk through the agent creation wizard and understand what each step configures."
+---
+
+Click **Create Agent** in the sidebar to open the wizard. If the button is disabled, you need to [add a model to Settings](/platform/settings/models) first.
+
+{/* screenshot: agent-creation-wizard-tabs */}
+
+## Baseline vs. a strong agent
+
+To **create and save** an agent in Studio you must set at least a **name** (Profile), a description and most importantly choose a **model** (Inference). That is enough for the app to store a valid configuration — think of it as the technical floor, not the goal.
+
+For an agent that will hold up in production, treat the rest of the wizard as **expected work**, not extras: a clear **profile** (purpose, behavior, evaluation strategy, system prompt), **knowledge** (RAG) when answers must be grounded, **MCP tools** when the agent must act on systems, **memory** when conversations need continuity, **channels** when users reach you outside Studio, and **pre-processors / sentinels** when safety or policy matters. Start with name + model if you need to move fast, then fill these in before you call the agent done.
+
+## Wizard steps
+
+| Step | What it configures | When you need it |
+|------|--------------------|-----------------|
+| **Profile** | Identity, personality, evaluation strategy, system prompt | Always |
+| **Inference** | Which LLM powers the agent | Always |
+| **MCP Servers** | External tools the agent can call | When you want tool use |
+| **Agent-to-Agent** | Other agents this agent can call in the workspace | When you want peer agents available to this one |
+| **Knowledge** | Document retrieval (RAG) | When agents should answer from documents |
+| **Integration Channels** | WhatsApp, Email delivery | When agents should send/receive outside Studio |
+| **Pre-processor** | Sentinels and empathy rules | When you need safety or input filtering |
+| **Memory** | Short-term or long-term conversation memory | When context persistence matters |
+
+
+## Test at any time
+
+The **Try Me** button in the top-right corner opens the Test Drawer at any point during configuration. You can test the agent with its current settings by saving first.
+
+{/* screenshot: try-me-button */}
+
+## Editing existing agents
+
+Editing an existing agent from the Dashboard opens the same wizard, pre-populated with the agent's current configuration. Changes are saved in real time.
+
+## Next steps
+
+Start with the most important steps:
+
+<CardGroup cols={2}>
+  <Card title="Profile" icon="user" href="/platform/agent-creation/profile">
+    Define the agent's identity, personality, and reasoning strategy.
+  </Card>
+  <Card title="Inference" icon="cpu" href="/platform/agent-creation/model-selection">
+    Select the model that powers the agent.
+  </Card>
+</CardGroup>

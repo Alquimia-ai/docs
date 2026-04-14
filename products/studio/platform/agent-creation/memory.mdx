@@ -1,0 +1,73 @@
+---
+title: "Memory"
+description: "Give the agent memory across a conversation or across multiple sessions."
+---
+
+Memory lets the agent maintain context beyond the current message — either within a single conversation or across multiple sessions over time.
+
+{/* screenshot: agent-creation-memory-tab */}
+
+## Memory strategies
+
+### None (default)
+
+No memory. Each message is treated as an independent, stateless interaction. The agent has no awareness of previous turns.
+
+**Best for**: Single-turn tasks, lookup agents, classification agents, any use case where conversation history doesn't matter.
+
+---
+
+### Short-term memory
+
+The agent remembers the current conversation session. Previous messages in the same session are injected into the prompt context.
+
+| Parameter | Description |
+|-----------|-------------|
+| **Max Tokens** | Maximum token budget for injected history. Older messages are dropped when the budget is exceeded. |
+| **Metadata Filter** | Optional filter to scope memory retrieval by session metadata (e.g., only recall messages tagged with a specific topic) |
+
+**Best for**: Customer support conversations, multi-turn Q&A, any interaction where the agent needs to remember what was said earlier in the same session.
+
+---
+
+### Long-term memory
+
+The agent persists context **across sessions** using one of two runtime strategies — **Neuralyzer** or **CoD Summarizer** (`cod-summarizer`). These are summarization / compression pipelines managed by the platform.
+
+Choose **Memory Strategy**:
+
+| Strategy | What it does |
+|----------|----------------|
+| **Neuralyzer** | Continuously **summarizes and compresses** conversation history so older turns collapse into durable context instead of growing without bound. |
+| **CoD Summarizer** | **Chain-of-Density** summarization: builds compact summaries and can **store them in a knowledge-base collection** you name (see **Collection ID** below). |
+
+**Shared parameters** (both strategies):
+
+| Parameter | Description |
+|-----------|-------------|
+| **Interaction Threshold (Qty)** | Number of interactions before a summarize step runs. Use **-1** for no limit (always follow runtime defaults). |
+| **Interaction Threshold (Tokens)** | Token budget threshold before summarizing. Use **-1** for unlimited. |
+| **Interaction Keep** | How many **recent** interactions to leave **unsummarized**. `0` means everything eligible can roll into summarized form. |
+
+**CoD Summarizer only**:
+
+| Parameter | Description |
+|-----------|-------------|
+| **Collection ID** | Knowledge-base collection where summaries are written (must match how your runtime/knowledge stack expects storage). |
+| **CoD Max Loops** | Maximum refinement loops for the Chain-of-Density pass (default in UI: `5`). |
+
+**Best for**: Assistants that should remember a user or account across returning sessions, without relying on raw transcript replay alone.
+
+<Note>
+  Long-term behavior is **strategy-driven** (Neuralyzer vs. CoD Summarizer), not “pick Top K / similarity on an embeddings index” in Studio. If you need retrieval over **uploaded documents**, that is [Knowledge Base](/platform/agent-creation/knowledge-base) + [Embeddings](/platform/settings/embeddings).
+</Note>
+
+## Combining memory with knowledge base
+
+Short- or long-term memory and **Knowledge Base** (RAG over documents) can be active together: the agent can combine **conversation-side context** with **document embeddings** in the same reply. CoD Summarizer in particular may **write** summaries into a collection that participates in your knowledge stack; that is separate from configuring an embeddings model *for* long-term memory in the Memory UI.
+
+## Next steps
+
+<Card title="Dev Mode" icon="code" href="/platform/agent-creation/dev-mode">
+  Access advanced controls for the system prompt and agent configuration.
+</Card>

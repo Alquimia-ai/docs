@@ -1,0 +1,86 @@
+---
+title: "Discover"
+description: "Browse, install, and publish agent workspaces from the community catalog."
+---
+
+The Discover page is a catalog of published agent workspaces. Browse ready-made agents from your organization or the community, install them into your workspace, or publish your own configurations for others to use.
+
+{/* screenshot: discover-page-grid */}
+
+## Browsing the catalog
+
+- **Grid / List toggle** — switch between card grid and compact list view
+- **Search** — find agents by name or description
+
+Click any card to open the **Agent Detail Modal**.
+
+## Agent detail modal
+
+{/* screenshot: agent-detail-modal */}
+
+The detail modal shows:
+- Agent name, description, and publisher
+- Tags and capabilities overview
+- **Version picker** — if the publisher has released multiple versions (tags), select which one to install
+
+## Installing agents
+
+Two installation modes:
+
+### Add to workspace
+
+Copies the agents from the published workspace into your **current active workspace**. Your existing agents are unaffected — this is an additive operation.
+
+Use this when you want to pull in specific agents from a template and combine them with your own.
+
+### Clone full workspace
+
+Creates a **brand-new workspace** based on the published one. All agents, settings, and configurations from the source are cloned.
+
+Use this when you want a complete starting point — a new workspace with everything already configured.
+
+<Note>
+  Cloned workspaces are independent copies. Changes you make to your clone don't affect the original, and updates to the original aren't pushed to your clone.
+</Note>
+
+## Publishing your workspace
+
+Share your agents with others by publishing your workspace to the catalog.
+
+Click **Publish** from the Dashboard header or from inside the Discover page.
+
+{/* screenshot: publish-modal */}
+
+Fill in the publish form:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | OCI-compatible name (lowercase, hyphens allowed, no spaces). E.g., `customer-support-starter` |
+| **Tag** | Version label. Use semantic versioning (e.g., `1.0.0`) or `latest` |
+| **Description** | What this workspace contains and who it's for |
+| **Logo** | Optional image representing the workspace in the catalog |
+
+<Note>
+  When you publish with a versioned tag (e.g., `1.0.0`), Studio also publishes `latest` automatically. This ensures users who install without specifying a version always get the most recent one.
+</Note>
+
+<Warning>
+  Published workspaces are visible to anyone with access to your registry. Secrets are stored as `$secretRef` references — not raw values — so they're safe to publish. However, avoid publishing proprietary system prompts or sensitive business logic you don't want shared.
+</Warning>
+
+## Version management
+
+Each published workspace can have multiple tags (versions). The detail modal's version picker lets installers choose which tag to install.
+
+To publish a new version of an existing workspace, use the same workspace name with a new tag (e.g., `1.1.0`). The `latest` tag is updated automatically.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Workspaces" icon="folder" href="/core-concepts/workspaces">
+    Understand how workspaces and OCI addressing work.
+  </Card>
+  <Card title="Dashboard" icon="layout-dashboard" href="/platform/dashboard">
+    Manage and test agents in your workspace.
+  </Card>
+</CardGroup>

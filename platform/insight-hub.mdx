@@ -1,0 +1,30 @@
+---
+title: InsightHub
+description: Turn documents into a conversational knowledge base your team can explore through AI.
+---
+
+InsightHub is a knowledge exploration platform. Users create topics — structured containers for a knowledge domain — upload documents into them, and explore that knowledge through streaming AI conversation grounded in their own content.
+
+It is purpose-built for teams that need to make large or fragmented document collections accessible without building custom search or chatbot infrastructure.
+
+## What you do in InsightHub
+
+- **Create topics** — define a knowledge domain and give it a name and description; topics act as scoped containers that keep exploration answers focused and relevant
+- **Upload documents** — add PDFs, Markdown, and plain text files; they are ingested, chunked, embedded, and indexed automatically
+- **Explore** — open a conversation against any topic and ask questions in natural language; responses stream in real time and are grounded in the indexed documents
+- **Inspect reasoning** — see which document passages were retrieved, what tools were invoked, and how the AI reached its answer before the response completes
+- **Use voice** — dictate questions with speech-to-text and hear responses read back with text-to-speech
+
+## Studio + InsightHub
+
+Topics require an agent from the Runtime registry to power their explorations — and that agent comes from Alquimia Studio. Every topic is wired to a registered agent: its model, system prompt, tools, memory, and behavior are all configured there.
+
+This means you get both layers working together: the dynamic document context that InsightHub provides through RAG, and a specialized agent tailored to your domain, tone, and workflow. A customer support agent that knows your product documentation. A research assistant trained to reason like your team. An onboarding bot grounded in your actual processes.
+
+InsightHub handles the knowledge layer, Studio handles the agent layer, and the Runtime executes both together.
+
+## How it connects to the Runtime
+
+InsightHub does not run inference itself. Every exploration message is sent to the Alquimia Runtime, which queries Twyd (the knowledge service) for relevant document chunks, executes any tools the agent needs, and streams the full response — including intermediate reasoning steps — back to the InsightHub interface.
+
+[Open InsightHub documentation](/products/insight-hub/index)

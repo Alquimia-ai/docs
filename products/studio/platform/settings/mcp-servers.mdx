@@ -1,0 +1,64 @@
+---
+title: "MCP Servers"
+description: "Register external tool servers that agents can call to interact with the world."
+---
+
+MCP (Model Context Protocol) is an open standard for connecting AI agents to external tools and services. Each MCP server exposes a set of callable functions — tools — that agents can use during a conversation.
+
+Examples: GitHub operations, ClickUp task management, database queries, calendar access, custom internal APIs.
+
+{/* screenshot: settings-mcp-list */}
+
+## Adding an MCP server
+
+Click **Add MCP Server** and configure both the staging and production stages:
+
+{/* screenshot: add-mcp-server-modal */}
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name used when selecting MCP servers in agent creation |
+| **Description** | What tools this server provides. Helps you identify it later. |
+| **Staging URL** | Endpoint for the test/development MCP server |
+| **Production URL** | Endpoint for the live MCP server |
+| **Transport** | Protocol for communicating with the server |
+| **Credentials** | Auth credentials if the server requires them (stored as secrets) |
+
+## Transport types
+
+| Transport | Description | Use when |
+|-----------|-------------|----------|
+| `sse` | Server-Sent Events over HTTP | Remote MCP servers (most common) |
+| `http` | Plain HTTP requests | Simple REST-style MCP servers |
+| `stdio` | Standard input/output | Local process-based MCP servers |
+
+## Staging vs Production stages
+
+Each MCP server has two stages with independent URLs and credentials:
+
+- **Staging** — used during agent development and testing
+- **Production** — used when the agent goes live
+
+This lets you point agents at a test MCP server during development without risking production data. Toggle the active stage per server independently.
+
+<Note>
+  Agents always use whichever stage is currently marked active on the MCP server. You don't need to update agents when you switch a server from staging to production.
+</Note>
+
+## Health check
+
+Studio periodically checks the server's availability. A **green indicator** means the server is reachable. A **red indicator** means the server is down or unreachable — agents using this server may fail to call its tools.
+
+## Credentials
+
+If the MCP server requires authentication (API key, bearer token, etc.), enter the credentials when configuring the server. They're stored as secrets and injected at runtime via the `$secretRef` pattern.
+
+## Using MCP servers in agents
+
+Once registered here, MCP servers appear under **MCP Tools** during agent creation. See [MCP Tools](/platform/agent-creation/mcp-tools) for how to assign them to agents.
+
+## Next steps
+
+<Card title="MCP Tools in Agent Creation" icon="wrench" href="/platform/agent-creation/mcp-tools">
+  Add registered MCP servers to an agent.
+</Card>

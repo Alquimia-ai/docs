@@ -1,0 +1,66 @@
+---
+title: "Embeddings Models"
+description: "Configure vector models that power the knowledge base (RAG)."
+---
+
+Embeddings models convert text into numerical vectors — a representation that enables semantic search. In Studio they primarily power **Knowledge Base** — finding relevant document passages to answer questions (RAG).
+
+**Long-term conversation memory** is configured under the agent’s **Memory** step and uses **Neuralyzer** or **CoD Summarizer** at runtime, not an embeddings picker from this screen.
+
+{/* screenshot: settings-embeddings-list */}
+
+## Adding an embeddings model
+
+Click **Add Embeddings Model**:
+
+{/* screenshot: add-embeddings-modal */}
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name used when selecting embeddings in agent creation |
+| **Class Path** | The LangChain class the Runtime uses to call the embeddings service |
+| **Model URL** | The endpoint URL for the embeddings service |
+
+## Common class paths
+
+| Provider | Class Path |
+|----------|------------|
+| Ollama (local) | `langchain_community.embeddings.OllamaEmbeddings` |
+| OpenAI | `langchain_openai.OpenAIEmbeddings` |
+| Cohere | `langchain_cohere.CohereEmbeddings` |
+| HuggingFace | `langchain_community.embeddings.HuggingFaceEmbeddings` |
+
+## Ollama embeddings (local)
+
+If you started the stack with `--profile with-local-models` and included an embed model in `OLLAMA_MODELS`, it's already registered:
+
+```ini
+OLLAMA_MODELS=qwen2.5:0.5b nomic-embed-text
+```
+
+The `nomic-embed-text` model is registered automatically as an embeddings model. The others are registered as chat models.
+
+For manually added Ollama embeddings:
+- **Class Path**: `langchain_community.embeddings.OllamaEmbeddings`
+- **Model URL**: `http://ollama:11434` (inside Docker network) or `http://localhost:11434` (from host)
+
+<Tip>
+  `nomic-embed-text` is an excellent default for local development. For production, OpenAI's `text-embedding-3-small` or Cohere's `embed-english-v3.0` offer better quality.
+</Tip>
+
+## Required for Knowledge Base
+
+An agent cannot use the **Knowledge Base** feature without an embeddings model configured here and selected for that agent.
+
+If **Knowledge Base** in agent creation shows no embeddings model selector, return here and add one first. For **long-term memory**, configure [Memory](/platform/agent-creation/memory) instead.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Knowledge Base" icon="book" href="/platform/agent-creation/knowledge-base">
+    Configure document retrieval (RAG) for an agent.
+  </Card>
+  <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">
+    Configure short-term or long-term conversation memory (Neuralyzer or CoD Summarizer).
+  </Card>
+</CardGroup>

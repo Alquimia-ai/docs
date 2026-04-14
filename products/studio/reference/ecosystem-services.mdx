@@ -1,0 +1,96 @@
+---
+title: "Ecosystem Services Reference"
+description: "All services in the Alquimia stack, their default ports, and key environment variables."
+---
+
+## Services
+
+| Service | Default Port | URL | Description |
+|---------|-------------|-----|-------------|
+| **Runtime** | 8080 | http://localhost:8080 | Event-driven agent execution platform. Orchestrates multi-agent LLM runs (prompting, memory, tool execution, and retrieval flows). |
+| **Twyd** | 8000 | http://localhost:8000 | Knowledge base service — topics, files, vector search. |
+| **Studio** | 3001 | http://localhost:3001 | Agent builder. Login via Keycloak or Lite. In-app metrics dashboards for agents (OpenTelemetry; Prometheus-backed). |
+| **Insight Hub** | 3000 | http://localhost:3000 | Knowledge exploration app — Topics, document ingestion, and streaming AI chat over the Alquimia runtime. |
+| **MongoDB** | 27017 | — | Studio's database (models, MCP, embeddings, settings). |
+| **Ollama** | 11434 | http://localhost:11434 | Local LLM inference (with-local-models profile only). |
+
+## Environment variables
+
+All configuration lives in `.env` in the `alquimia-local` directory.
+
+### Shared
+
+| Variable | Description |
+|----------|-------------|
+| `API_TOKEN` | Internal API token shared between services |
+| `AUTH_PROVIDER` | Authentication provider identifier |
+| `ASSISTANT_BASEURL` | Registry API base URL (used by Studio) |
+
+### Models (cloud & custom endpoints)
+
+Cloud providers, API keys, and **Base URL** overrides (including OpenAI-compatible proxies and local inference URLs) are configured in **Studio → Settings → Models Registry**, not via provider blocks in `.env`.
+
+### Runtime
+
+| Variable | Description |
+|----------|-------------|
+| `RUNTIME_HOST_PORT` | External port for the Runtime service (default: 8080) |
+| `K_SINK` | Event sink URL for async messaging |
+| `ALQUIMIA_REGISTRY_DIR` | Directory for local registry storage |
+
+### Router
+
+| Variable | Description |
+|----------|-------------|
+| `ROUTER_HOST_PORT` | External port for the Router service (default: 8081) |
+| `ALQUIMIA_RUNTIME_URL` | URL the Router uses to reach the Runtime |
+| `ROUTER_RUNTIME_TIMEOUT_SECONDS` | Request timeout in seconds |
+
+### Studio
+
+| Variable | Description |
+|----------|-------------|
+| `STUDIO_HOST_PORT` | External port for Studio (default: 3001) |
+| `AUTH_KEYCLOAK_ID` | Keycloak client ID |
+| `AUTH_KEYCLOAK_SECRET` | Keycloak client secret |
+| `AUTH_KEYCLOAK_ISSUER` | Keycloak issuer URL |
+| `STUDIO_NEXTAUTH_SECRET` | NextAuth.js session secret |
+
+### Database
+
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_USER` | Postgres username |
+| `POSTGRES_PASSWORD` | Postgres password |
+| `POSTGRES_DB` | Postgres database name |
+| `MONGO_INITDB_ROOT_USERNAME` | MongoDB root username |
+| `MONGO_INITDB_ROOT_PASSWORD` | MongoDB root password |
+
+### MinIO
+
+| Variable | Description |
+|----------|-------------|
+| `MINIO_ROOT_USER` | MinIO admin username |
+| `MINIO_ROOT_PASSWORD` | MinIO admin password |
+| `BLOB_S3_*` | S3-compatible storage configuration for Twyd |
+
+### Ollama (local models profile)
+
+| Variable | Description |
+|----------|-------------|
+| `OLLAMA_MODELS` | Space-separated model names to pull and register |
+| `OLLAMA_HOST_PORT` | External port for Ollama (default: 11434) |
+| `OLLAMA_BASE_URL` | Base URL used by the Runtime to call Ollama |
+
+### Insight Hub
+
+Insight Hub is the knowledge-exploration UI (topics, documents, streaming chat). It is not the observability surface for agents — that lives in Studio (see Studio row above).
+
+| Variable | Description |
+|----------|-------------|
+| `INSIGHT_HUB_HOST_PORT` | External port for Insight Hub (default: 3000) |
+| `INSIGHT_HUB_AUTH_PROVIDER` | Auth provider for Insight Hub |
+
+<Note>
+  All port variables follow the pattern `{SERVICE}_HOST_PORT`. Override them in `.env` before running `docker compose up` — changing them after containers are created requires `docker compose down` first.
+</Note>

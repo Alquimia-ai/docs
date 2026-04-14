@@ -1,0 +1,60 @@
+---
+title: "Pre-processor"
+description: "Filter, classify, and transform user requests before they reach the main agent."
+---
+
+The Pre-processor runs before the main agent sees a user message. Use it to enforce safety policies, classify intent, or apply deterministic rules — without changing the main agent's logic.
+
+{/* screenshot: agent-creation-preprocessor-tab */}
+
+## Sentinels
+
+Sentinels are mini-agents that evaluate the incoming message using an LLM. They can block, tag, or transform the request based on their classification.
+
+Select one or more Sentinels from those configured in [Settings → Sentinels](/platform/settings/sentinels).
+
+**Execution order**: Sentinels run sequentially in the order they're listed. If a sentinel **blocks** a request, subsequent sentinels and the main agent are skipped. The blocking sentinel's configured response is returned to the user.
+
+Common sentinel use cases:
+- Block off-topic or harmful inputs before they reach the agent
+- Classify intent and tag the request for downstream logic
+- Detect language and route accordingly
+
+## Empathy Rules
+
+Empathy Rules are condition-based rules that run **without an LLM call** — they're evaluated deterministically based on patterns, keywords, or metadata. Much faster and cheaper than sentinels.
+
+{/* screenshot: empathy-rules-builder */}
+
+Each rule consists of:
+- **Condition** — what to match (keyword in message, metadata value, user attribute)
+- **Action** — what to do (respond with a fixed message, tag the request, escalate)
+
+Example rules:
+- IF message contains "cancel my account" → respond with "Please contact our retention team at..."
+- IF message contains profanity → block with "Please keep the conversation respectful"
+- IF user_language = "es" → tag as `spanish` and forward
+
+<Tip>
+  Use **Empathy Rules** for simple, predictable patterns you can express as exact conditions — greetings, out-of-scope topics, keyword triggers. Use **Sentinels** for nuanced classification that requires understanding context and intent.
+</Tip>
+
+## Combining sentinels and empathy rules
+
+Both can be active simultaneously. The execution order is:
+1. Empathy Rules (instant, no LLM)
+2. Sentinels (LLM-powered, sequential)
+3. Main agent
+
+This ordering minimizes cost — deterministic rules catch the easy cases before any LLM is invoked.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Sentinels in Settings" icon="shield" href="/platform/settings/sentinels">
+    Create and configure sentinels before assigning them here.
+  </Card>
+  <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">
+    Configure conversation memory for the agent.
+  </Card>
+</CardGroup>

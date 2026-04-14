@@ -1,0 +1,21 @@
+---
+title: Studio
+description: The visual interface for building, managing, and monitoring AI agents on your own infrastructure.
+---
+
+[Open Studio documentation](/products/studio/index)
+
+Alquimia Studio is the application for creating and operating AI agents. You define each agent's model, system prompt, tools, memory strategy, knowledge base, and integration channels — Studio stores that configuration in the Alquimia Runtime registry, where agents live and execute.
+
+Studio is built for teams that want full control without writing infrastructure code. Business users can configure agents through the UI; operators monitor health and usage through built-in dashboards powered by Prometheus, which collects metrics from across the platform via OpenTelemetry.
+
+## What you do in Studio
+
+- **Build agents** — compose an agent from a model, a system prompt, MCP tools, memory, a knowledge base, and integration channels (Slack, WhatsApp, Email) through a step-by-step interface
+- **Manage workspaces** — organize agents into workspaces with their own model registry, MCP servers, embedding models, and secrets
+- **Publish and discover** — package workspaces as OCI artifacts and share them through the Discover catalog; install community-published agents into your own environment
+- **Monitor** — track agent activity, latency, and usage through Prometheus-backed dashboards; Runtime, Studio, and InsightHub all export metrics via OpenTelemetry to the shared collector
+
+## How it connects to the Runtime
+
+Studio does not execute agents — it authors them. Every agent you save in Studio is written to the Runtime's registry. When a user interacts with an agent (through any channel or integration), the Runtime reads that configuration and handles the full inference lifecycle: pre-processing, retrieval, LLM calls, tool execution, and response delivery.

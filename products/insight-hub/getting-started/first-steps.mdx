@@ -1,0 +1,67 @@
+---
+title: "First steps"
+description: "Log in to InsightHub and create your first topic."
+---
+
+With InsightHub running, open it in your browser:
+
+**http://localhost:3000**
+
+## Logging in
+
+InsightHub supports **Keycloak** (enterprise SSO) or **Lite** login (local credentials), depending on how your instance is configured.
+
+{/* screenshot: insight-hub-login */}
+
+Enter your credentials. After logging in, you land on the topics grid.
+
+## The topics grid
+
+The topics grid is your home screen. It shows all topics available to you in the current tenant. On a fresh install it is empty.
+
+{/* screenshot: insight-hub-topics-grid-empty */}
+
+## Creating your first topic
+
+<Steps>
+  <Step title="Open the create topic dialog">
+    Click **New Topic** in the top-right corner of the grid. A dialog opens asking for a name and description.
+  </Step>
+  <Step title="Name your topic">
+    Give the topic a clear name that reflects its knowledge domain — for example, "Product Documentation" or "Q3 Research Papers".
+  </Step>
+  <Step title="Confirm">
+    Click **Create**. The topic appears in the grid.
+  </Step>
+</Steps>
+
+{/* screenshot: insight-hub-create-topic-dialog */}
+
+## Adding documents
+
+Click on your topic to open the topic detail view. From there, you can upload the files that will form the knowledge base for that topic.
+
+Supported formats: PDF, Markdown (`.md`), plain text (`.txt`).
+
+Uploaded files are processed asynchronously. The status updates from **Processing** to **Ready** once indexing is complete.
+
+{/* screenshot: insight-hub-document-upload */}
+
+## Starting your first exploration
+
+Once the topic has at least one document with **Ready** status, click **New Exploration** to open the AI chat interface.
+
+Type a question related to your uploaded content and send it. The AI retrieves relevant passages and responds in real time.
+
+{/* screenshot: insight-hub-first-exploration */}
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Topics" icon="layers" href="/products/insight-hub/platform/topics">
+    Manage your topics and their settings.
+  </Card>
+  <Card title="Documents" icon="file-text" href="/products/insight-hub/platform/documents">
+    Upload and manage documents within a topic.
+  </Card>
+</CardGroup>

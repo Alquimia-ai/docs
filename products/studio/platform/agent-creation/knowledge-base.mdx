@@ -1,0 +1,66 @@
+---
+title: "Knowledge Base"
+description: "Connect your agent to documents so it can answer questions using your content."
+---
+
+The Knowledge Base gives your agent access to a collection of documents. When a user asks a question, the agent retrieves the most relevant passages and uses them to construct an accurate, grounded answer. This technique is called **RAG** — Retrieval-Augmented Generation.
+
+{/* screenshot: agent-creation-knowledge-tab */}
+
+## Prerequisites
+
+An [Embeddings Model](/platform/settings/embeddings) must be configured in Settings before you can use the Knowledge Base. If you don't see an embeddings selector here, add one first.
+
+## Uploading documents
+
+Drag and drop files into the upload area or click to browse. Uploaded documents are:
+1. Processed and chunked into passages
+2. Embedded using the selected embeddings model
+3. Stored in the vector database (Qdrant)
+
+{/* screenshot: knowledge-base-upload */}
+
+## Retrieval parameters
+
+These parameters control how the agent searches your documents when answering a question.
+
+### Search type
+
+| Type | Description | Best for |
+|------|-------------|----------|
+| `similarity` | Pure semantic similarity — finds the most relevant chunks | Specific, focused questions |
+| `mmr` | Maximal Marginal Relevance — balances relevance with diversity | Broad questions, avoiding repetitive passages |
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| **K** | 4 | Number of document chunks retrieved per query |
+| **Score Threshold** | none | Minimum similarity score (0.0–1.0). Chunks below this are excluded. |
+| **Fetch K** | — | MMR only: candidates to evaluate before selecting the final K |
+| **Lambda Mult** | — | MMR only: diversity weight (0 = max diversity, 1 = max relevance) |
+
+<Tip>
+  Start with `similarity`, K=4, and no threshold. Run a few test queries in the Test Drawer. If answers are repetitive, switch to `mmr`. If answers include irrelevant content, add a score threshold (try 0.7 first).
+</Tip>
+
+## How retrieval works at runtime
+
+When the agent receives a message:
+1. The query is embedded using the same embeddings model
+2. The vector database finds the K most similar document chunks
+3. Those chunks are injected into the agent's prompt as context
+4. The LLM uses this context to generate a grounded answer
+
+The agent cites information from your documents rather than relying solely on what the LLM learned during training.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Embeddings Models" icon="vector-square" href="/platform/settings/embeddings">
+    Configure the embeddings model required for the knowledge base.
+  </Card>
+  <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">
+    Add conversation memory alongside document retrieval.
+  </Card>
+</CardGroup>

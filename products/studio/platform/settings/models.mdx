@@ -1,0 +1,61 @@
+---
+title: "Models Registry"
+description: "Register LLM providers so agents can use them for inference."
+---
+
+The Models Registry connects LLM providers to the Alquimia Runtime. Each entry tells the Runtime which provider class to use, what model to call, and how to authenticate.
+
+{/* screenshot: settings-models-list */}
+
+## Adding a model
+
+Click **Add Model** and fill in the form:
+
+{/* screenshot: add-model-modal */}
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name shown in the agent creation wizard (e.g., "Claude Sonnet", "GPT-4o") |
+| **Provider** | The LangChain integration class the Runtime uses. Determines the API format. |
+| **Model ID** | The exact identifier used by the provider API (e.g., `claude-sonnet-4-20250514`, `gpt-4o`) |
+| **API Key** | Your provider API key. Stored as a [secret](/core-concepts/secrets) automatically. |
+| **Base URL** | Optional. Override the default API endpoint. |
+
+## Supported providers
+
+| Provider | Example Model IDs |
+|----------|------------------|
+| `anthropic` | `claude-sonnet-4-20250514`, `claude-haiku-4-5-20251001` |
+| `openai` | `gpt-4o`, `gpt-4o-mini`, `o1-preview` |
+| `groq` | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` |
+| `google` | `gemini-1.5-pro`, `gemini-1.5-flash` |
+| `mistral` | `mistral-large-latest`, `mistral-small-latest` |
+| `cohere` | `command-r-plus`, `command-r` |
+| `meta` | `meta-llama/Llama-3.3-70B-Instruct` |
+
+<Tip>
+  All providers use the OpenAI-compatible interface under the hood. If your provider supports OpenAI-compatible endpoints, you can register it by setting the **Base URL** to your provider's endpoint and using the `openai` provider type.
+</Tip>
+
+## API keys become secrets
+
+When you save a model with an API key, Studio automatically:
+1. Stores the key in the Registry secrets store with a name based on the provider (e.g., `ANTHROPIC_API_KEY`)
+2. Replaces the raw key in the model config with `$ANTHROPIC_API_KEY`
+
+The raw key is never stored in plain text after this point. See [Secrets](/core-concepts/secrets) for how this works.
+
+**To rotate a key**: Edit the model and enter the new API key. The secret is updated and all agents using that model pick up the new key automatically.
+
+## Base URL use cases
+
+The **Base URL** field lets you use:
+- **OpenAI-compatible proxies**
+- **Local endpoints** — Ollama (`http://localhost:11434/v1`), LM Studio
+- **Custom deployments** — self-hosted vLLM, TGI
+
+## Next steps
+
+<Card title="Creating an Agent" icon="robot" href="/platform/agent-creation/overview">
+  Once you have a model, you're ready to create your first agent.
+</Card>

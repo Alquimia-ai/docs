@@ -1,0 +1,117 @@
+---
+title: "Quick start"
+description: "Get InsightHub running locally with or without an external database."
+---
+
+InsightHub is a Next.js application. The fastest way to run it locally is **Lite mode**, which uses a built-in SQLite database and local credentials — no external services required beyond an Alquimia Runtime instance.
+
+## Prerequisites
+
+- **Node.js 20+**
+- A running **Alquimia Runtime** instance (its URL becomes `ASSISTANT_BASEURL`)
+
+## Lite mode (no database setup)
+
+Lite mode replaces PostgreSQL with SQLite and Keycloak with local-credentials login. It is designed for development and demos — zero infrastructure besides Node.
+
+<Steps>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Configure your environment">
+    ```bash
+    cp .env.example .env.local
+    ```
+
+    Open `.env.local` and set at minimum:
+
+    ```bash
+    # Lite database — no PostgreSQL needed
+    DB_STRATEGY=lite
+    DATABASE_URL=file:.data/lite.db
+
+    # Lite auth — local credentials
+    AUTH_STRATEGY=lite
+    AUTH_LITE_USERS='[{"id":"1","name":"Admin","email":"admin@example.com","password":"changeme","role":"admin"}]'
+
+    # Alquimia Runtime
+    ASSISTANT_BASEURL=http://localhost:8080
+    ALQUIMIA_ASSISTANT_API_KEY=your-api-key
+
+    # NextAuth
+    NEXTAUTH_SECRET=a-random-secret-string
+    NEXTAUTH_URL=http://localhost:3000
+    ```
+  </Step>
+  <Step title="Start the dev server">
+    ```bash
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000).
+  </Step>
+</Steps>
+
+<Tip>
+  The SQLite database and tables are created automatically on first startup. You do not need to run migrations in Lite mode.
+</Tip>
+
+## Production setup (PostgreSQL + Keycloak)
+
+For production deployments with a real database and enterprise SSO:
+
+<Steps>
+  <Step title="Install dependencies">
+    ```bash
+    npm install
+    ```
+  </Step>
+  <Step title="Configure your environment">
+    Copy `.env.example` to `.env.local`. Set `DB_STRATEGY=postgres` with a valid `DATABASE_URL`, and `AUTH_STRATEGY=keycloak` with your Keycloak credentials.
+  </Step>
+  <Step title="Run database migrations">
+    ```bash
+    npm run db:deploy
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    npm run build && npm run start
+    ```
+  </Step>
+</Steps>
+
+## Key environment variables
+
+| Variable | Description |
+|---|---|
+| `DB_STRATEGY` | `postgres` (default) or `lite` (SQLite) |
+| `DATABASE_URL` | PostgreSQL connection string, or `file:.data/lite.db` for SQLite |
+| `AUTH_STRATEGY` | `keycloak` or `lite` |
+| `NEXTAUTH_SECRET` | NextAuth signing secret |
+| `NEXTAUTH_URL` | App base URL (e.g. `http://localhost:3000`) |
+| `ASSISTANT_BASEURL` | Alquimia Runtime base URL |
+| `ALQUIMIA_ASSISTANT_API_KEY` | Alquimia API key |
+| `AUTH_LITE_USERS` | JSON array of users *(lite only)* |
+| `AUTH_KEYCLOAK_ID` | Keycloak client ID *(keycloak only)* |
+| `AUTH_KEYCLOAK_SECRET` | Keycloak client secret *(keycloak only)* |
+| `AUTH_KEYCLOAK_ISSUER` | Keycloak issuer URL *(keycloak only)* |
+
+See `.env.example` for the full list, including optional observability variables.
+
+## Docker
+
+If you prefer Docker:
+
+```bash
+docker build -t insight-hub .
+docker run -p 3000:3000 --env-file .env.local insight-hub
+```
+
+## Next steps
+
+<Card title="First steps" icon="footprints" href="/products/insight-hub/getting-started/first-steps">
+  Log in and create your first topic.
+</Card>

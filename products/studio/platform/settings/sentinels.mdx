@@ -1,0 +1,64 @@
+---
+title: "Sentinels"
+description: "Pre-processor agents that intercept and evaluate requests before your main agent runs."
+---
+
+A **Sentinel** is a mini-agent that runs **before** the main agent processes a user message. It intercepts the input, applies a classification or safety check, and can block, transform, or tag the request.
+
+{/* screenshot: settings-sentinels-list */}
+
+## Use cases
+
+- **Content moderation** — block harmful or off-topic inputs
+- **Intent classification** — tag the request type for downstream routing
+- **PII detection** — flag or redact personal information
+- **Language detection** — route to a language-specific agent
+- **Topic enforcement** — ensure users stay within the agent's defined scope
+
+## Sentinel vs Safeguard Model
+
+These are two distinct concepts:
+
+| Term | What it is |
+|------|-----------|
+| **Safeguard Model** | The LLM configuration used by the sentinel — its "brain" |
+| **Sentinel** | The complete pre-processor: a safeguard model + system prompt + conditions |
+
+Think of the safeguard model as the engine and the sentinel as the car.
+
+## Adding a sentinel
+
+Click **Add Sentinel**:
+
+{/* screenshot: sentinel-add-form */}
+
+**Profile section** — defines what the sentinel does:
+- **System Prompt** — instructions for the sentinel's LLM. E.g.: *"You are a content moderator. Classify the following user input as `safe` or `unsafe`. Return only the classification label."*
+
+**Config section** — which model powers the sentinel:
+- References a **Safeguard Model** registered in Settings
+
+**Conditions section** — what happens based on the sentinel's output:
+
+{/* screenshot: sentinel-condition-builder */}
+
+The visual condition builder lets you define rules like:
+- IF sentinel returns `unsafe` → block the request with a fixed message
+- IF sentinel returns `billing` → tag the request and allow through
+- IF sentinel returns `escalate` → forward to a human handoff flow
+
+<Note>
+  Sentinels run synchronously before the main agent. Every user message waits for the sentinel to complete. Use small, fast models (e.g., 7B or smaller) for classification tasks to keep latency low.
+</Note>
+
+## Using sentinels in agents
+
+Once a sentinel is created here, it becomes available under **Pre-processor** during agent creation. Multiple sentinels can be chained — they run in order, and if one blocks the request, subsequent sentinels and the main agent are skipped.
+
+See [Pre-processor](/platform/agent-creation/pre-processor) for how to assign sentinels to agents.
+
+## Next steps
+
+<Card title="Pre-processor" icon="shield-halved" href="/platform/agent-creation/pre-processor">
+  Add sentinels and empathy rules to an agent.
+</Card>

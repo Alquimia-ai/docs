@@ -1,0 +1,57 @@
+---
+title: Overview
+description: How Studio, InsightHub, and the Runtime fit together.
+---
+
+## What Alquimia is
+
+Alquimia is an enterprise AI platform built around a shared execution backend. The product interfaces — Studio and InsightHub — let teams build agents and explore knowledge. Everything those products do at runtime flows through a single backend: the **Alquimia Runtime**.
+
+Your data and agent configuration stay in your own infrastructure. The platform is built for teams that need AI that is governed, auditable, and deployed on their own terms.
+
+## How the pieces fit
+
+| Component | What it does |
+|-----------|-------------|
+| **Runtime** | The execution engine every product calls. Handles AI inference (REST + SSE streaming), manages the agent registry (models, prompts, tools, secrets, channels), runs connectors for Slack, WhatsApp, and Email, and coordinates agent-to-agent (A2A) calls. |
+| **Studio** | The application for building agents. You define agents — model, system prompt, tools, memory, knowledge, and channels — and Studio stores that configuration in the Runtime's registry. Agents live and execute in the Runtime; Studio is where you author and manage them. Agent health dashboards surface telemetry from across the stack via the shared OTel pipeline. |
+| **InsightHub** | The knowledge exploration front end. Users create topics, upload documents, and explore them through streaming AI conversation. InsightHub sends every query to the Runtime, which retrieves relevant document chunks (via Twyd), executes any tools, and streams the response back. |
+| **Twyd** | The knowledge service. Handles document ingestion, chunking, embedding, and vector search. InsightHub indexes documents through Twyd; the Runtime queries it for RAG retrieval during explorations. |
+| **Observability pipeline** | Runtime, Studio, and InsightHub each export logs, traces, and metrics via **OpenTelemetry**. Metrics are scraped by **Prometheus** and surface in Studio's agent health dashboards. Traces and logs are forwarded to any OTLP-compatible backend (Grafana Tempo, Jaeger, etc.). No single product owns the pipeline — each service is an independent exporter. |
+
+## How they connect
+
+```
+Studio
+  │  authors agents → stores config in Runtime Registry
+  ▼
+Alquimia Runtime ◀──── Redis · S3 · Vault
+  ▲  agents live and execute here (inference, A2A, connectors)
+  │
+InsightHub
+  │  sends every chat message to inference API
+  │
+  ▼
+Twyd (document indexing + vector search)
+```
+
+- **Studio** is the application for building agents. Every agent you define in Studio is stored in the Runtime's **Registry** and executes in the Runtime.
+- **InsightHub** calls the Runtime's **inference API** for every exploration message. The Runtime queries Twyd for relevant document passages and streams the response back to the InsightHub UI.
+- **Both products share the same Runtime deployment.** Model credentials, secrets, and workspace configuration set up once in Studio are available to any product calling that Runtime.
+
+## Observability
+
+Runtime, Studio, and InsightHub all instrument their own telemetry using **OpenTelemetry** — logs, traces, and metrics are exported from each service independently to a shared collector in the ecosystem. No single product owns the observability pipeline; each one is an exporter.
+
+Metrics flow through **Prometheus**, which feeds Studio's agent health dashboards — the primary surface for reviewing activity, latency, and usage across agents. Traces and logs are forwarded to any OTLP-compatible backend.
+
+## Authentication
+
+Both Studio and InsightHub support **Keycloak** (enterprise SSO) or a lightweight local credentials mode. The Runtime itself supports API token, JWT, or Keycloak authentication — the product front end handles the user session and passes the appropriate token to the Runtime on each request.
+
+## Related reading
+
+- [Applications catalog](/platform/applications)
+- [Runtime](/platform/runtime) — what the execution engine does
+- [Studio documentation](/products/studio/index)
+- [InsightHub documentation](/products/insight-hub/index)

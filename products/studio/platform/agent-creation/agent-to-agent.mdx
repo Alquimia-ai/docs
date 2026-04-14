@@ -1,0 +1,57 @@
+---
+title: "Agent-to-Agent"
+description: "Let this agent reach other agents in the same workspace when the task fits—no coordinator layer, peers calling peers."
+---
+
+Agent-to-Agent (A2A) links the current agent agent to other agents in the same workspace. At runtime the model may **invoke another agent** the same way it can invoke an MCP tool—because those peers are exposed as callable capabilities.
+
+{/* screenshot: agent-creation-a2a-tab */}
+
+## Use cases
+
+**Shared workspace, different expertise**  
+One agent handles the thread until the user’s goal clearly matches another agent’s description—for example billing vs. technical support—then **hands off** by calling that peer.
+
+**Splitting concerns**  
+Agents stay small and focused. Several agents can each link to the others they need, symmetrically, instead of a single “top” controller.
+
+**Intent-based routing**  
+An intake-style agent classifies what the user wants and **calls** the workspace agent whose description best matches—without a separate orchestration service.
+
+## Selecting agents
+
+Choose from other agents in the current workspace. You can add multiple.
+
+{/* screenshot: a2a-agent-selector */}
+
+<Note>
+  Adding agents here automatically switches the **evaluation strategy to `react`** — the same as adding MCP tools. Other agents are surfaced as callable actions inside that reasoning loop; that is wiring, not a parent/child relationship between agents.
+</Note>
+
+## What the model sees for each linked agent
+
+Each linked agent is presented to **this** agent as a callable capability with:
+
+- **Name** — slug-style identifier the model uses when calling it  
+- **Description** — taken from the agent’s **Profile**  
+
+Clear **descriptions** matter: they tell the model **when** calling that peer is appropriate.
+
+**Good description**: *"Handles billing inquiries including invoice questions, payment failures, subscription changes, and refund requests. Use when users ask about charges, payments, or their subscription."*
+
+**Vague description**: *"Billing agent."*
+
+## Mixing MCP tools and agents
+
+You can combine MCP tools and other agents on the same agent. The model chooses among those capabilities from the same loop—**tools and peer agents are options**, not tiers of control.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="MCP Tools" icon="wrench" href="/platform/agent-creation/mcp-tools">
+    Add external tool integrations alongside agent calls.
+  </Card>
+  <Card title="Profile" icon="user" href="/platform/agent-creation/profile">
+    Write agent descriptions that make peer calls easy to choose correctly.
+  </Card>
+</CardGroup>

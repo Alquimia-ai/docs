@@ -1,0 +1,59 @@
+---
+title: "First login"
+description: "Log in to Alquimia Studio for the first time and get oriented."
+---
+
+With the stack running, open Studio in your browser:
+
+**http://localhost:3001**
+
+## Logging in
+
+Studio supports **Keycloak** (enterprise SSO) or **Lite** login (local credentials), depending on how your stack is configured.
+
+{/* screenshot: keycloak-login-screen */}
+
+Enter the credentials configured in your `.env` file (the defaults are in `.env.example`). After logging in, you'll land on the Studio dashboard.
+
+## The onboarding tour
+
+On your first visit, Studio starts an onboarding tour automatically. It highlights the key areas of the app:
+
+1. **Dashboard** — your agent feed
+2. **Settings** — where you configure models, MCP servers, and more
+3. **Discover** — the community agent catalog
+
+{/* screenshot: onboarding-tour-start */}
+
+You can dismiss the tour at any time and restart it from the sidebar if needed.
+
+## Before creating your first agent
+
+<Warning>
+  The **Create Agent** button in the sidebar is **disabled until at least one model is configured**. Go to Settings → Models Registry and add a model first.
+</Warning>
+
+If the models list is empty, [add a model in Settings](/products/studio/platform/settings/models) before creating an agent.
+
+## The sidebar
+
+The sidebar is your main navigation:
+
+- **Dashboard** — view and manage your agents
+- **Create Agent** — open the agent creation wizard (disabled without a model)
+- **Discover** — browse and install community agents
+- **Settings** — models, MCP servers, embeddings, sentinels
+- **Workspace switcher** (top of sidebar) — switch between workspaces
+
+{/* screenshot: sidebar-navigation */}
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Settings overview" icon="gear" href="/products/studio/platform/settings/overview">
+    Configure the building blocks before creating your first agent.
+  </Card>
+  <Card title="Creating an agent" icon="robot" href="/products/studio/platform/agent-creation/overview">
+    Walk through the agent creation wizard.
+  </Card>
+</CardGroup>

@@ -1,0 +1,72 @@
+---
+title: "Dashboard"
+description: "Your agent feed — open agents, manage runtime state, and jump to metrics from the workspace home."
+---
+
+The Dashboard is the home screen of Studio. It lists every agent in your active workspace as a card grid.
+
+{/* screenshot: dashboard-agent-feed */}
+
+## Agent cards
+
+Each card shows:
+
+- **Name** and **description**
+- **Status** — Running, Paused, or Stopped (whether the agent is live for the runtime)
+- **Tags** (when set)
+- **Last active** (when available)
+
+**Click anywhere on the card** to open the [agent detail page](#agent-detail-page). Use the **⋯** button in the top-right to open the card menu without leaving the dashboard.
+
+{/* screenshot: dashboard-agent-card-actions */}
+
+## Card menu (⋯)
+
+| Item | What it does |
+|------|----------------|
+| **View details** | Opens the agent detail page (same as clicking the card). |
+| **Metrics** | Opens the agent metrics dialog for that agent (Prometheus-backed charts for the selected assistant). |
+| **Edit** | Opens the agent detail page in **edit** mode. Shown when your role allows editing. |
+| **Start agent** | Brings the agent online for the runtime when it is not Running. Shown when your role allows editing. |
+| **Stop agent** | Pauses the agent for the runtime while keeping its configuration. Shown when the agent is Running and your role allows editing. |
+| **Copy ID** | Copies the full assistant identifier (including workspace scope) to the clipboard. |
+| **Copy Slack connector** | Copies the Slack inbound connector URL for this agent. |
+| **Delete** | Starts delete confirmation; permanently removes the agent when confirmed. Shown when your role allows deleting. |
+
+<Note>
+  **Start** / **Stop** change whether the runtime will serve the agent; they do not delete configuration. Use **Stop** for maintenance or temporarily taking an agent offline.
+</Note>
+
+## Agent detail page
+
+After you open an agent from the dashboard, the detail page is where you review each configuration area (profile, model, tools, memory, and so on) and change configuration when you have edit access.
+
+**Try Me** lives in the **header** of this page (not in the dashboard card menu). It opens the **Test Drawer** — a side panel chat wired to the live runtime so you can exercise the agent with its current saved configuration.
+
+{/* screenshot: agent-test-drawer */}
+
+- **Try Me** is available when you are **not** in edit mode; while you are editing, finish or cancel edits first so the drawer matches the saved agent.
+- Inside the drawer, traffic hits the Runtime with the agent’s resolved config (model, prompts, tools, memory, etc.), which makes it a practical sanity check before you share or publish the agent.
+
+## Publishing
+
+The **Publish** button in the header lets you publish your entire workspace to the [Discover catalog](/platform/discover). This packages your agents so others can install them.
+
+## Empty state
+
+If no agents exist yet, the dashboard shows an empty state with a prompt to create your first agent.
+
+<Warning>
+  The **Create Agent** button in the sidebar stays disabled until at least one model is configured in Settings. If it is grayed out, [add a model first](/platform/settings/models).
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Creating an Agent" icon="plus" href="/platform/agent-creation/overview">
+    Build your first agent with the creation wizard.
+  </Card>
+  <Card title="Settings" icon="gear" href="/platform/settings/overview">
+    Configure models, MCP servers, and more.
+  </Card>
+</CardGroup>

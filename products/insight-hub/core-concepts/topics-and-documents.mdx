@@ -1,0 +1,52 @@
+---
+title: "Topics and documents"
+description: "How topics and documents work together as InsightHub's core building blocks."
+---
+
+Everything in InsightHub is organized around two building blocks: **topics** and **documents**.
+
+## Topics
+
+A topic represents a knowledge domain — a subject area you want to explore. It is the container for a set of related documents and the entry point for starting explorations.
+
+A well-scoped topic makes exploration answers more precise because the AI searches within a bounded, relevant set of documents. Rather than putting everything into one topic, create separate topics for distinct domains:
+
+- "Product specs — v2.3"
+- "Q4 investor materials"
+- "Customer onboarding guides"
+
+## Documents
+
+Documents are the source material inside a topic. When you upload a file, InsightHub processes it into a form the AI can work with:
+
+```
+Upload
+   ↓
+Text extraction
+   ↓
+Chunking (split into passages)
+   ↓
+Embedding (passages converted to vectors)
+   ↓
+Indexed in the vector store
+```
+
+When the AI answers a question during an exploration, it searches these indexed passages — not the raw files. The answer is assembled from retrieved chunks, not recalled from general training knowledge.
+
+## How they shape exploration answers
+
+The AI during an exploration only has access to documents within the current topic. This means:
+
+- **Answers are scoped** — the AI answers from your documents, not general knowledge alone
+- **Boundaries matter** — if a relevant document is not in the topic, the AI cannot reference it
+- **Document quality counts** — clean, on-topic files improve retrieval accuracy
+
+<Tip>
+  If an exploration answer seems incomplete or off-target, check that the relevant documents are uploaded, fully processed (**Ready** status), and belong to the correct topic.
+</Tip>
+
+## Next steps
+
+<Card title="RAG" icon="search" href="/products/insight-hub/core-concepts/rag">
+  Understand how the AI retrieves and uses document passages to answer questions.
+</Card>
