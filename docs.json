@@ -50,7 +50,12 @@
         "product": "Runtime",
         "description": "Core service of the Alquimia agent framework",
         "icon": "cpu",
-        "href": "/platform/runtime"
+        "groups": [
+          {
+            "group": "Runtime",
+            "pages": ["platform/runtime"]
+          }
+        ]
       },
       {
         "$ref": "products/studio/navigation.json",

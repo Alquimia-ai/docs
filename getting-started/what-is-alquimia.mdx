@@ -3,18 +3,24 @@ title: "What is Alquimia"
 description: "Understand the Alquimia ecosystem and how its products fit together."
 ---
 
-Alquimia is a complete AI runtime ecosystem for building and running enterprise-ready AI agents with a focus on transparency, consistency, and flexibility. **Studio** is the visual interface where you configure agents. The **Runtime** is where they actually run. **InsightHub** is the knowledge exploration front end that lets teams converse with their documents. These products share a single backend — you don't need to know about every layer to get started, but understanding the big picture helps.
+**Alquimia** is a platform for running enterprise level AI assistants on your own infrastructure: you design how agents behave, you ground them in your documents when needed, and everything executes in one place behind the scenes.
+
+**[Alquimia Studio](/products/studio/index)** is where you build and operate agents — the place teams live day to day for configuration and health.
+
+**[InsightHub](/products/insight-hub/index)** is for knowledge work: topics, uploads, and guided exploration over your content, still powered by the same agents and execution stack.
+
+**[Alquimia Core & Runtime](/platform/runtime)** is that shared execution layer — Core is the SDK that drives the inference pipeline, tool ecosystem, memory strategies, and agent registry; Runtime is the FastAPI service that runs it all in production, wiring multi-channel connectors and coordinating agent work over a CloudEvents-based event model.
 
 {/* screenshot: alquimia-ecosystem-diagram */}
 
 ## The ecosystem at a glance
 
-| Component | Role |
-|-----------|------|
-| **Studio** | Agent builder — design, configure, and manage agents. Agent health dashboards are powered by **Prometheus**, which collects metrics from Runtime, Studio, and InsightHub via the shared OTel pipeline. |
-| **Runtime** | Event-driven execution platform for agents. Orchestrates inference, multi-agent runs, context-aware prompting, memory strategies, tool execution, and channel connectors. Built for Kubernetes and OpenShift deployments. |
-| **InsightHub** | AI-powered knowledge exploration — create **Topics**, upload documents, and explore them through streaming AI conversation powered by the Runtime. |
-| **Twyd** | Knowledge base service. Handles document ingestion, topic management, and vector search. Used by InsightHub and the Runtime for RAG retrieval. |
+| Piece | What it is |
+|-------|----------------|
+| **Studio** | Where you create and manage agents and workspace settings. |
+| **InsightHub** | Where you structure documents and explore them in conversation. |
+| **Core & Runtime** | The inference and orchestration layer. **Core** is the SDK: inference pipeline (shields, generation, tools, memory, empathy engine), multi-provider LLM connectors, a unified tool layer (MCP, Llama Stack, built-ins, A2A), and the agent registry. **Runtime** is the FastAPI service that runs it: inference API, multi-channel connectors (Slack, WhatsApp, Email), and CloudEvents-based event orchestration. |
+| **Twyd** | The knowledge service behind document ingestion and search used when answers must stay close to your files. |
 
 ## The agent lifecycle
 
@@ -25,11 +31,10 @@ flowchart LR
     A["Studio\n(you configure)"] --> B["Runtime Registry\n(config stored)"] --> C["Runtime\n(agent executes)"]
 ```
 
-1. You configure an agent in Studio (model, system prompt, tools, memory, etc.)
-2. Studio saves the configuration to the **Runtime Registry** — the central store for all agent configs
-3. When a user sends a message, the Runtime fetches the agent config from the Registry
-4. The Runtime executes the agent: constructs the prompt, calls the LLM, runs tools if needed, applies memory
-5. Telemetry from the run — along with telemetry from Studio and InsightHub — flows through the shared **OpenTelemetry** pipeline; **Prometheus** collects the metrics and feeds Studio's dashboards, where you review agent health and usage
+1. You configure an agent in Studio.
+2. That configuration is stored in the **Runtime Registry**.
+3. When someone chats — in Studio, InsightHub, or a connected channel (Slack, WhatsApp, Email) — the Runtime loads that configuration and runs it through the Core inference pipeline end to end.
+4. Usage and health show up in the observability setup your team configured; Studio is the usual place to review agent-focused metrics.
 
 ## Next steps
 
@@ -41,3 +46,5 @@ flowchart LR
     Get the stack running locally with Docker Compose.
   </Card>
 </CardGroup>
+
+If you are extending, integrating, or deploying the execution layer itself, the reference material lives on the **[Alquimia Runtime documentation site](https://alquimia-runtime-sdk.stldocs.app/)** (CLI, SDK, HTTP API, and operations).
