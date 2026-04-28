@@ -1,0 +1,97 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Alquimia Studio",
+  "colors": {
+    "primary": "#7C3AED",
+    "light": "#A78BFA",
+    "dark": "#5B21B6"
+  },
+  "favicon": "/favicon.ico",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Welcome",
+        "pages": [
+          "index",
+          "getting-started/what-is-alquimia"
+        ]
+      },
+      {
+        "group": "Getting Started",
+        "pages": [
+          "getting-started/installation",
+          "getting-started/first-login"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "platform/dashboard",
+          {
+            "group": "Create agent",
+            "pages": [
+              "platform/agent-creation/overview",
+              "platform/agent-creation/profile",
+              "platform/agent-creation/model-selection",
+              "platform/agent-creation/mcp-tools",
+              "platform/agent-creation/agent-to-agent",
+              "platform/agent-creation/knowledge-base",
+              "platform/agent-creation/integration-channels",
+              "platform/agent-creation/pre-processor",
+              "platform/agent-creation/memory",
+              "platform/agent-creation/dev-mode"
+            ]
+          },
+          {
+            "group": "Settings",
+            "pages": [
+              "platform/settings/overview",
+              "platform/settings/models",
+              "platform/settings/mcp-servers",
+              "platform/settings/embeddings",
+              "platform/settings/sentinels"
+            ]
+          },
+          "platform/discover"
+        ]
+      },
+      {
+        "group": "Core Concepts",
+        "pages": [
+          "core-concepts/agents",
+          "core-concepts/workspaces",
+          "core-concepts/secrets"
+        ]
+      },
+      {
+        "group": "Ecosystem",
+        "pages": [
+          "getting-started/ecosystem-overview",
+          "reference/ecosystem-services"
+        ]
+      },
+      {
+        "group": "Reference",
+        "pages": [
+          "reference/roles-and-permissions"
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [],
+    "primary": {
+      "type": "button",
+      "label": "Get Started",
+      "href": "/getting-started/installation"
+    }
+  },
+  "footer": {
+    "socials": {}
+  }
+}
