@@ -1,0 +1,527 @@
+---
+title: "Studio"
+description: "Deploy Alquimia Studio on Kubernetes."
+---
+
+[![Red Hat Certified Helm Chart](https://img.shields.io/badge/Red%20Hat-Certified%20Helm%20Chart-EE0000?logo=redhat&logoColor=white)](https://charts.openshift.io/)
+
+Production-ready Helm chart to deploy **[Alquimia Studio](https://github.com/Alquimia-ai/studio)** — the no-code/low-code platform to build, deploy, and manage enterprise AI agents — on **Kubernetes** and **OpenShift**.
+
+The chart is aligned with **Red Hat Helm Chart Certification** best practices: non-root containers, read-only root filesystem, dropped capabilities, liveness/readiness probes, configurable resources, recommended labels, and built-in Helm tests.
+
+> **Available in the [Red Hat OpenShift Helm Catalog](https://charts.openshift.io/)** as a **Partner** chart, provided by *Alquimia AI US Corp.* — install it directly from the OpenShift web console or via the CLI. See [Red Hat OpenShift Helm Catalog](#red-hat-openshift-helm-catalog).
+
+---
+
+## Table of Contents
+
+- [TL;DR](#tldr)
+- [Red Hat OpenShift Helm Catalog](#red-hat-openshift-helm-catalog)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Upgrading](#upgrading)
+- [Uninstalling](#uninstalling)
+- [Configuration](#configuration)
+  - [Required Environment Variables (Studio)](#required-environment-variables-studio)
+  - [Using existing ConfigMap and Secret](#using-existing-configmap-and-secret)
+  - [Creating ConfigMap and Secret with the chart](#creating-configmap-and-secret-with-the-chart)
+- [Parameters](#parameters)
+- [Example `values.yaml`](#example-valuesyaml)
+- [Security](#security)
+- [Network Policy](#network-policy-opt-in)
+- [OpenShift Notes](#openshift-notes)
+- [Troubleshooting](#troubleshooting)
+- [Maintainers](#maintainers)
+
+---
+
+## TL;DR
+
+```bash
+helm repo add alquimia https://example.com/alquimia-charts
+helm repo update
+
+helm install studio alquimia/alquimia-studio \
+  --set image.repository=alquimiaai/studio \
+  --set image.tag=v1.0.0
+```
+
+---
+
+## Red Hat OpenShift Helm Catalog
+
+This chart is published as a **Red Hat certified Partner chart** in the official **[OpenShift Helm Charts catalog](https://charts.openshift.io/)** (`https://charts.openshift.io/`), maintained by *Alquimia AI US Corp.*
+
+It is available out-of-the-box on every OpenShift cluster (4.15+) under **Software Catalog → Helm Charts**, ready to be installed with a single click from the web console.
+
+### Install from the OpenShift web console
+
+1. Log in to the OpenShift web console.
+2. Navigate to **Developer → Add → Helm Chart** (or **Administrator → Software Catalog → Helm Charts**).
+3. Filter by **Chart Repositories: OpenShift Helm Charts** and search for **Alquimia Studio**.
+4. Click **Create**, choose the namespace, and provide your `values.yaml` (or use the form view).
+5. Click **Install** — the console will render the chart and create the resources.
+
+### Install from the CLI (using the OpenShift catalog repo)
+
+The OpenShift catalog is exposed as a standard Helm repository, so you can install the chart from any client:
+
+```bash
+helm repo add openshift-helm-charts https://charts.openshift.io/
+helm repo update
+
+# Browse available versions
+helm search repo openshift-helm-charts/alquimia-studio --versions
+
+# Install a specific version
+helm install studio openshift-helm-charts/alquimia-studio \
+  --version 0.2.0 \
+  -n alquimia-studio --create-namespace \
+  -f values-prod.yaml
+```
+
+> The published chart includes the Red Hat certification annotations (`charts.openshift.io/name`, `charts.openshift.io/providerType: partner`, `charts.openshift.io/supportedOpenShiftVersions: ">=4.15"`) and has passed the [Red Hat Helm Chart Verifier](https://github.com/redhat-certification/chart-verifier) checks.
+
+---
+
+## Prerequisites
+
+| Component        | Version                                        |
+| ---------------- | ---------------------------------------------- |
+| Kubernetes       | `>= 1.26`                                      |
+| OpenShift        | `>= 4.15` *(if deploying on OCP)*              |
+| Helm             | `>= 3.9`                                       |
+| Container image  | A published image of Alquimia Studio           |
+| MongoDB          | Required when `DB_STRATEGY=mongo` *(default)*           |
+| Keycloak         | Required when `AUTH_STRATEGY=keycloak` *(recommended)*  |
+| Alquimia Runtime | Required for inference orchestration                    |
+| Alquimia TWYD    | Required if RAG / document indexing is enabled          |
+
+---
+
+## Installation
+
+### 1) Basic install (Service only)
+
+```bash
+helm install studio ./alquimia-studio \
+  --set image.repository=alquimiaai/studio \
+  --set image.tag=v1.0.0
+```
+
+### 2) With Kubernetes Ingress
+
+```bash
+helm install studio ./alquimia-studio \
+  --set ingress.enabled=true \
+  --set ingress.className=nginx \
+  --set ingress.hosts[0].host=studio.example.com
+```
+
+### 3) On OpenShift with Route (recommended on OCP)
+
+```bash
+helm install studio ./alquimia-studio \
+  --set openshift.route.enabled=true \
+  --set openshift.route.host=studio.apps.example.openshift.com
+```
+
+> If both `ingress.enabled` and `openshift.route.enabled` are `true`, the chart prefers **Ingress** and skips the Route.
+
+---
+
+## Upgrading
+
+```bash
+helm upgrade studio ./alquimia-studio --set image.tag=v1.2.3
+```
+
+## Uninstalling
+
+```bash
+helm uninstall studio
+```
+
+---
+
+## Configuration
+
+Alquimia Studio is configured almost entirely through environment variables, sourced from a `ConfigMap` (non-sensitive) and a `Secret` (sensitive). The chart supports two patterns:
+
+1. **Bring your own** existing `ConfigMap` / `Secret` *(recommended for production)*.
+2. **Let the chart create** them from `values.yaml` *(handy for dev/staging)*.
+
+### Required Environment Variables (Studio)
+
+These variables are consumed by Alquimia Studio at runtime. Place **non-sensitive** values in the `ConfigMap` and **secrets** in the `Secret`.
+
+#### Database
+
+| Variable       | Required               | Type   | Description                                                                                     | Example                                                          |
+| -------------- | ---------------------- | ------ | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `DB_STRATEGY`  | Yes                    | Config | Persistence strategy. `mongo` (default, requires MongoDB) or `lite` (embedded NeDB, no DB).     | `mongo`                                                          |
+| `DATABASE_URL` | If `DB_STRATEGY=mongo` | Secret | MongoDB connection string. Treated as a Secret because it usually contains user/password.       | `mongodb+srv://user:pass@cluster.mongodb.net/alquimia-studio`    |
+
+#### Authentication (Keycloak / NextAuth)
+
+Studio supports two strategies via `AUTH_STRATEGY`: `keycloak` (enterprise SSO) or `lite` (self-contained, file/JSON-based users).
+
+| Variable                    | Required                      | Type   | Description                                                                       |
+| --------------------------- | ----------------------------- | ------ | --------------------------------------------------------------------------------- |
+| `AUTH_STRATEGY`             | Yes                           | Config | `keycloak` (recommended) or `lite`.                                               |
+| `NEXT_PUBLIC_AUTH_STRATEGY` | Yes                           | Config | Same value as `AUTH_STRATEGY`, exposed to the browser.                            |
+| `AUTH_KEYCLOAK_ISSUER`      | If `AUTH_STRATEGY=keycloak`   | Config | Keycloak issuer URL (`…/auth/realms/<realm>`).                                    |
+| `AUTH_KEYCLOAK_ID`          | If `AUTH_STRATEGY=keycloak`   | Config | OIDC client ID registered in Keycloak.                                            |
+| `AUTH_KEYCLOAK_SECRET`      | If `AUTH_STRATEGY=keycloak`   | Secret | OIDC client secret.                                                               |
+| `NEXTAUTH_URL`              | Yes                           | Config | Public URL of Studio (must match Keycloak redirect URIs in `keycloak` mode).      |
+| `NEXTAUTH_SECRET`           | Yes                           | Secret | Random string used to sign NextAuth.js sessions/JWTs.                             |
+| `AUTH_LITE_USERS`           | If `AUTH_STRATEGY=lite` (one of these two) | Secret | Inline JSON array of users with `email`, `name`, `password_hash` (bcrypt). |
+| `AUTH_LITE_USERS_FILE`      | If `AUTH_STRATEGY=lite` (one of these two) | Config | Path to a JSON file with the users list (mounted via volume).              |
+
+#### Alquimia Runtime
+
+| Variable                     | Required | Type   | Description                                             |
+| ---------------------------- | -------- | ------ | ------------------------------------------------------- |
+| `ASSISTANT_BASEURL`          | Yes      | Config | Base URL of the Alquimia Runtime service.               |
+| `ALQUIMIA_ASSISTANT_API_KEY` | Yes      | Secret | API key used by Studio to authenticate against Runtime. |
+
+#### Alquimia TWYD (Knowledge Base)
+
+| Variable        | Required             | Type   | Description                                                 |
+| --------------- | -------------------- | ------ | ----------------------------------------------------------- |
+| `TWYD_BASEURL`  | If RAG is enabled    | Config | Base URL of the Alquimia TWYD (Knowledge Base) service.     |
+| `TWYD_API_KEY`  | If RAG is enabled    | Secret | API key for TWYD.                                           |
+
+#### Metrics (Prometheus / Grafana)
+
+| Variable             | Required | Type   | Description                                                                |
+| -------------------- | -------- | ------ | -------------------------------------------------------------------------- |
+| `METRICS_API_URL`    | No       | Config | Prometheus / Grafana metrics API URL (e.g. `https://metrics.example.com/api/`). |
+| `METRICS_API_TOKEN`  | No       | Secret | Bearer token (or `username:password` for Basic auth) for the metrics API.  |
+
+#### OpenTelemetry & logging (optional)
+
+| Variable                         | Required | Type   | Description                                            |
+| -------------------------------- | -------- | ------ | ------------------------------------------------------ |
+| `OTEL_ALQUIMIA_SERVICE_NAME`     | No       | Config | Logical service name reported to OTel.                 |
+| `OTEL_COLLECTOR_ENDPOINT_TRACES` | No       | Config | OTLP traces endpoint (e.g. `…/v1/traces`).             |
+| `OTEL_COLLECTOR_ENDPOINT`        | No       | Config | OTLP metrics endpoint (e.g. `…/v1/metrics`).           |
+| `OTEL_COLLECTOR_ENDPOINT_LOGS`   | No       | Config | OTLP logs endpoint (e.g. `…/v1/logs`).                 |
+| `OTEL_EXPORTER_INTERNAL_MILIS`   | No       | Config | Export interval in milliseconds.                       |
+| `OTEL_EXPORTER_TIMEOUT_MILIS`    | No       | Config | Export timeout in milliseconds.                        |
+| `LOG_LEVEL`                      | No       | Config | Log level: `debug`, `info`, `warn`, `error`.           |
+
+#### Misc / UI
+
+| Variable                  | Required | Type   | Description                                                                          |
+| ------------------------- | -------- | ------ | ------------------------------------------------------------------------------------ |
+| `EXTERNAL_REGISTRY_URL`   | No       | Config | External OCI registry URL used by the Discover feed. Leave empty to disable.         |
+| `NEXT_PUBLIC_ONBOARDING`  | No       | Config | `true`/`false`. Enables the onboarding tour for new users.                           |
+
+---
+
+### Using existing ConfigMap and Secret
+
+If you already manage `alquimia-studio-config` and `alquimia-studio-secrets` (e.g. via GitOps, Sealed Secrets, External Secrets Operator):
+
+```yaml
+envFrom:
+  existingConfigMap: "alquimia-studio-config"
+  existingSecret: "alquimia-studio-secrets"
+
+createConfig:
+  enabled: false
+createSecret:
+  enabled: false
+```
+
+Example `ConfigMap` you might apply separately:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alquimia-studio-config
+data:
+  # Database
+  DB_STRATEGY: "mongo"
+
+  # Auth
+  AUTH_STRATEGY: "keycloak"
+  NEXT_PUBLIC_AUTH_STRATEGY: "keycloak"
+  AUTH_KEYCLOAK_ISSUER: "https://keycloak.example.com/auth/realms/alquimia"
+  AUTH_KEYCLOAK_ID: "alquimia-studio"
+  NEXTAUTH_URL: "https://studio.example.com"
+
+  # Alquimia services
+  ASSISTANT_BASEURL: "https://runtime.example.com"
+  TWYD_BASEURL: "https://twyd.example.com/"
+
+  # Observability
+  OTEL_ALQUIMIA_SERVICE_NAME: "alquimia-studio"
+  OTEL_COLLECTOR_ENDPOINT_TRACES: "http://otel-collector:4318/v1/traces"
+  OTEL_COLLECTOR_ENDPOINT: "http://otel-collector:4318/v1/metrics"
+  OTEL_COLLECTOR_ENDPOINT_LOGS: "http://otel-collector:4318/v1/logs"
+  OTEL_EXPORTER_INTERNAL_MILIS: "5000"
+  OTEL_EXPORTER_TIMEOUT_MILIS: "5000"
+  LOG_LEVEL: "info"
+
+  # Metrics (optional)
+  METRICS_API_URL: "https://metrics.example.com/api/"
+
+  # Misc (optional)
+  EXTERNAL_REGISTRY_URL: ""
+  NEXT_PUBLIC_ONBOARDING: "true"
+```
+
+Example `Secret`:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alquimia-studio-secrets
+type: Opaque
+stringData:
+  DATABASE_URL: "mongodb+srv://user:pass@cluster.mongodb.net/alquimia-studio?retryWrites=true&w=majority&appName=alquimia-studio"
+  AUTH_KEYCLOAK_SECRET: "replace-me"
+  NEXTAUTH_SECRET: "replace-me"
+  ALQUIMIA_ASSISTANT_API_KEY: "replace-me"
+  TWYD_API_KEY: "replace-me"
+  METRICS_API_TOKEN: "replace-me"
+```
+
+### Creating ConfigMap and Secret with the chart
+
+For dev/staging environments you can let the chart render them from `values.yaml`:
+
+```yaml
+envFrom:
+  existingConfigMap: ""
+  existingSecret: ""
+
+createConfig:
+  enabled: true
+  config:
+    DB_STRATEGY: "mongo"
+    AUTH_STRATEGY: "keycloak"
+    NEXT_PUBLIC_AUTH_STRATEGY: "keycloak"
+    AUTH_KEYCLOAK_ISSUER: "https://keycloak.example.com/auth/realms/alquimia"
+    AUTH_KEYCLOAK_ID: "alquimia-studio"
+    NEXTAUTH_URL: "https://studio.example.com"
+    ASSISTANT_BASEURL: "https://runtime.example.com"
+    TWYD_BASEURL: "https://twyd.example.com/"
+    LOG_LEVEL: "info"
+
+createSecret:
+  enabled: true
+  stringData:
+    DATABASE_URL: "mongodb+srv://user:pass@cluster.mongodb.net/alquimia-studio"
+    AUTH_KEYCLOAK_SECRET: "xxxxx"
+    NEXTAUTH_SECRET: "xxxxx"
+    ALQUIMIA_ASSISTANT_API_KEY: "xxxxx"
+    TWYD_API_KEY: "xxxxx"
+```
+
+Then install with:
+
+```bash
+helm install studio ./alquimia-studio -f values.yaml
+```
+
+> **Tip:** for production, prefer `existingSecret` populated by an external secret manager (Vault, AWS Secrets Manager, Sealed Secrets, ESO, etc.) instead of inlining secrets in `values.yaml`.
+
+---
+
+## Parameters
+
+### Image
+
+| Key                  | Type   | Default             | Description                       |
+| -------------------- | ------ | ------------------- | --------------------------------- |
+| `replicaCount`       | int    | `1`                 | Number of replicas                |
+| `image.repository`   | string | `alquimiaai/studio` | Image repository                  |
+| `image.tag`          | string | `latest`            | Image tag (pin via CI/CD)         |
+| `image.pullPolicy`   | string | `IfNotPresent`      | Image pull policy                 |
+| `image.pullSecrets`  | list   | `[]`                | List of `imagePullSecrets` names  |
+
+### Service & Networking
+
+| Key                            | Type   | Default              | Description                                |
+| ------------------------------ | ------ | -------------------- | ------------------------------------------ |
+| `service.type`                 | string | `ClusterIP`          | Service type                               |
+| `service.port`                 | int    | `80`                 | Service port                               |
+| `service.targetPort`           | int    | `3000`               | Container port                             |
+| `ingress.enabled`              | bool   | `false`              | Enable Kubernetes Ingress                  |
+| `ingress.className`            | string | `""`                 | IngressClass name                          |
+| `ingress.hosts[0].host`        | string | `studio.example.com` | Hostname                                   |
+| `ingress.tls`                  | list   | `[]`                 | TLS entries for hosts                      |
+| `openshift.route.enabled`      | bool   | `true`               | Enable OpenShift Route                     |
+| `openshift.route.host`         | string | `""`                 | Route host (optional)                      |
+| `openshift.route.tls.enabled`  | bool   | `true`               | TLS on Route                               |
+| `networkPolicy.enabled`        | bool   | `true`               | Enable NetworkPolicy                       |
+| `networkPolicy.ingressNamespaces` | list | `[]`                | Namespaces allowed to ingress (empty = same namespace) |
+
+### Resources & Scheduling
+
+| Key                          | Type   | Default | Description           |
+| ---------------------------- | ------ | ------- | --------------------- |
+| `resources.requests.cpu`     | string | `100m`  | CPU request           |
+| `resources.requests.memory`  | string | `256Mi` | Memory request        |
+| `resources.limits.cpu`       | string | `500m`  | CPU limit             |
+| `resources.limits.memory`    | string | `512Mi` | Memory limit          |
+| `nodeSelector`               | map    | `{}`    | Node selector         |
+| `tolerations`                | list   | `[]`    | Tolerations           |
+| `affinity`                   | map    | `{}`    | Affinity rules        |
+
+### Configuration & Secrets
+
+| Key                          | Type   | Default                      | Description                       |
+| ---------------------------- | ------ | ---------------------------- | --------------------------------- |
+| `env.vars`                   | list   | `[]`                         | Inline environment variables      |
+| `envFrom.existingConfigMap`  | string | `alquimia-studio-config`     | Use existing ConfigMap            |
+| `envFrom.existingSecret`     | string | `alquimia-studio-secrets`    | Use existing Secret               |
+| `createConfig.enabled`       | bool   | `false`                      | Create ConfigMap from values      |
+| `createConfig.config`        | map    | `{}`                         | Key/values for ConfigMap          |
+| `createSecret.enabled`       | bool   | `false`                      | Create Secret from values         |
+| `createSecret.stringData`    | map    | `{}`                         | Secret key/values                 |
+
+### Security
+
+| Key                          | Type   | Default        | Description                |
+| ---------------------------- | ------ | -------------- | -------------------------- |
+| `serviceAccount.create`      | bool   | `true`         | Create ServiceAccount      |
+| `serviceAccount.name`        | string | `""`           | ServiceAccount name        |
+| `podSecurityContext`         | map    | *see values*   | Pod security context       |
+| `containerSecurityContext`   | map    | *see values*   | Container security context |
+
+### Probes
+
+| Key                              | Type   | Default              | Description                |
+| -------------------------------- | ------ | -------------------- | -------------------------- |
+| `probes.liveness.path`           | string | `/health/liveness`   | Liveness probe path        |
+| `probes.readiness.path`          | string | `/health/readiness`  | Readiness probe path       |
+| `probes.liveness.periodSeconds`  | int    | `10`                 | Liveness probe period      |
+| `probes.readiness.periodSeconds` | int    | `10`                 | Readiness probe period     |
+
+---
+
+## Example `values.yaml`
+
+```yaml
+replicaCount: 2
+
+image:
+  repository: alquimiaai/studio
+  tag: "v1.0.0"
+  pullPolicy: IfNotPresent
+
+openshift:
+  route:
+    enabled: true
+    host: studio.apps.dev.example.com
+    tls:
+      enabled: true
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+
+envFrom:
+  existingConfigMap: "alquimia-studio-config"
+  existingSecret: "alquimia-studio-secrets"
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 512Mi
+
+networkPolicy:
+  enabled: true
+  ingressNamespaces: []
+```
+
+---
+
+## Security
+
+This chart follows container hardening best practices:
+
+- `runAsNonRoot: true`
+- `readOnlyRootFilesystem: true`
+- `allowPrivilegeEscalation: false`
+- All Linux capabilities **dropped** (`drop: ["ALL"]`)
+- `seccompProfile: RuntimeDefault`
+
+If your app needs write access (e.g. cache or temporary files), mount an `emptyDir` at the required path or extend the chart to add a writable volume.
+
+---
+
+## Network Policy (opt-in)
+
+Restrict inbound traffic to the service namespace (or specific namespaces):
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingressNamespaces: []  # same-namespace only
+```
+
+To allow specific namespaces:
+
+```yaml
+networkPolicy:
+  enabled: true
+  ingressNamespaces:
+    - alquimia-runtime
+    - ingress-nginx
+```
+
+---
+
+## OpenShift Notes
+
+- Prefer **Route** over Ingress (`openshift.route.enabled: true`).
+- Ensure the default SCC allows `runAsNonRoot`. If your cluster injects a random UID, this chart already sets non-root compatible options.
+- For TLS, you can attach a custom certificate to the Route or rely on router defaults.
+- The chart declares `charts.openshift.io/supportedOpenShiftVersions: ">=4.15"` for Red Hat certification.
+
+---
+
+## Troubleshooting
+
+**Pods stuck in `CrashLoopBackOff` complaining about missing env vars**
+Verify that the referenced `ConfigMap` and `Secret` exist *and* contain all required keys listed in [Required Environment Variables](#required-environment-variables-studio).
+
+```bash
+kubectl get cm alquimia-studio-config -o yaml
+kubectl get secret alquimia-studio-secrets -o yaml
+```
+
+**`NextAuth` callback errors / login redirect loops**
+Ensure that:
+
+- `NEXTAUTH_URL` matches the **public URL** exposed by the Ingress/Route.
+- The Keycloak client has the correct **Valid Redirect URIs** (e.g. `https://studio.example.com/api/auth/callback/keycloak`).
+- `NEXTAUTH_SECRET` is set and consistent across replicas.
+
+**Cannot connect to MongoDB**
+Check the `DATABASE_URL` value (it usually contains user/password and should live in the Secret) and that the MongoDB service is reachable from the pod's namespace. As a quick alternative for testing, set `DB_STRATEGY=lite` to use the embedded NeDB store.
+
+**`AUTH_STRATEGY=lite` users cannot log in**
+When using lite auth, provide either:
+
+- `AUTH_LITE_USERS` — inline JSON array (kept in the Secret), or
+- `AUTH_LITE_USERS_FILE` — absolute path to a JSON file (mount it via a volume).
+
+The JSON shape is `[{ "email": "...", "name": "...", "password_hash": "$2b$..." }]` (bcrypt hash).
+
+**Read-only filesystem errors**
+The chart enables `readOnlyRootFilesystem`. Mount an `emptyDir` if Studio (or a sidecar) needs to write to disk.
+
+**Run the chart's smoke tests**
+
+```bash
+helm test studio
+```

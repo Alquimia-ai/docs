@@ -26,13 +26,27 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["index", "platform/overview"]
+            "pages": [
+              "index",
+              "platform/overview"
+            ]
           },
           {
             "group": "Getting started",
             "pages": [
               "getting-started/what-is-alquimia",
-              "getting-started/installation",
+              {
+                "group": "Installation",
+                "pages": [
+                  "getting-started/installation",
+                  {
+                    "group": "Kubernetes",
+                    "pages": [
+                      "getting-started/kubernetes-studio"
+                    ]
+                  }
+                ]
+              },
               "getting-started/first-login"
             ]
           },
@@ -53,7 +67,9 @@
         "groups": [
           {
             "group": "Runtime",
-            "pages": ["platform/runtime"]
+            "pages": [
+              "platform/runtime"
+            ]
           }
         ]
       },
