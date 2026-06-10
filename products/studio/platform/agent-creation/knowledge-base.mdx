@@ -9,13 +9,13 @@ The Knowledge Base gives your agent access to a collection of documents. When a 
 
 ## Prerequisites
 
-An [Embeddings Model](/platform/settings/embeddings) must be configured in Settings before you can use the Knowledge Base. If you don't see an embeddings selector here, add one first.
+None — embeddings are handled automatically by the Alquimia runtime. Just open the Knowledge Base step and start uploading.
 
 ## Uploading documents
 
 Drag and drop files into the upload area or click to browse. Uploaded documents are:
 1. Processed and chunked into passages
-2. Embedded using the selected embeddings model
+2. Embedded by the runtime engine
 3. Stored in the vector database (Qdrant)
 
 {/* screenshot: knowledge-base-upload */}
@@ -47,7 +47,7 @@ These parameters control how the agent searches your documents when answering a 
 ## How retrieval works at runtime
 
 When the agent receives a message:
-1. The query is embedded using the same embeddings model
+1. The query is embedded by the runtime using the same model that indexed the documents
 2. The vector database finds the K most similar document chunks
 3. Those chunks are injected into the agent's prompt as context
 4. The LLM uses this context to generate a grounded answer
@@ -57,10 +57,10 @@ The agent cites information from your documents rather than relying solely on wh
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Embeddings Models" icon="vector-square" href="/platform/settings/embeddings">
-    Configure the embeddings model required for the knowledge base.
-  </Card>
   <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">
     Add conversation memory alongside document retrieval.
+  </Card>
+  <Card title="Model Selection" icon="cpu" href="/platform/agent-creation/model-selection">
+    Choose the LLM that generates grounded answers from retrieved context.
   </Card>
 </CardGroup>

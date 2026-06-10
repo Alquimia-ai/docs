@@ -1,29 +1,31 @@
 ---
 title: "Inference"
-description: "Select the language model that powers the agent and configure its runtime parameters."
+description: "Select the model connection that powers the agent and configure its runtime parameters."
 ---
 
-**Inference** selects which LLM the agent uses and lets you fine-tune its behavior with model parameters.
+**Inference** selects which model connection the agent uses and lets you fine-tune its behavior with model parameters.
 
 {/* screenshot: agent-creation-inference-tab */}
 
-## Model selection
+## Model connection
 
-The **Model** dropdown shows all models registered in [Settings → Models Registry](/platform/settings/models). Select the one this agent should use.
+The **Model connection** dropdown lists all connections registered in [Settings → Model Connections](/platform/settings/models). Select the one this agent should use — credentials are inherited from the connection; you do not re-enter API keys here.
 
-Different agents in the same workspace can use different models. Common patterns:
+Each option shows the connection name, type, and model ID (e.g., **GPT-4o Production — OpenAI** with `gpt-4o` below).
+
+Different agents in the same workspace can use different connections. Common patterns:
 
 - Use a powerful model (e.g., Claude Sonnet, GPT-4o) for complex reasoning agents
 - Use a fast, cheap model (e.g., Groq Llama, Claude Haiku) for simple classification or routing agents
-- Use a local Ollama model for development and testing
+- Use a custom endpoint for local development and testing
 
 <Warning>
-  If the dropdown is empty, no models have been configured yet. Go to [Settings → Models Registry](/platform/settings/models) and add at least one.
+  If the dropdown is empty, no model connections have been configured yet. Go to [Settings → Model Connections](/platform/settings/models) and add at least one.
 </Warning>
 
 ## Model parameters
 
-Model parameters are optional key-value pairs passed to the LLM at inference time. They let you tune the model's behavior per-agent without changing the model itself.
+Model parameters are optional key-value pairs passed to the LLM at inference time. They let you tune the model's behavior per-agent without changing the connection itself.
 
 {/* screenshot: model-parameters-form */}
 
@@ -39,12 +41,12 @@ Common parameters:
 | `presence_penalty` | float | Encourages the model to introduce new topics |
 
 <Note>
-  Supported parameters vary by provider. Unsupported parameters are silently ignored by the runtime. Refer to your provider's API documentation for the full list.
+  Supported parameters vary by connection type. Unsupported parameters are silently ignored by the runtime. Refer to your provider's API documentation for the full list.
 </Note>
 
 ## Next steps
 
-With a model selected, your agent is ready to run. From here you can optionally add:
+With a model connection selected, your agent is ready to run. From here you can optionally add:
 
 <CardGroup cols={2}>
   <Card title="MCP Tools" icon="wrench" href="/platform/agent-creation/mcp-tools">

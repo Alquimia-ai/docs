@@ -1,61 +1,71 @@
 ---
-title: "Models Registry"
-description: "Register LLM providers so agents can use them for inference."
+title: "Model Connections"
+description: "Register reusable model connections so agents can use them for inference."
 ---
 
-The Models Registry connects LLM providers to the Alquimia Runtime. Each entry tells the Runtime which provider class to use, what model to call, and how to authenticate.
+Model Connections tell agents which model to use, where it is hosted, and how to authenticate. Each entry is reusable across multiple agents in your workspace.
 
 {/* screenshot: settings-models-list */}
 
-## Adding a model
+## Adding a model connection
 
-Click **Add Model** and fill in the form:
+Click **Add Model Connection** and fill in the form:
 
 {/* screenshot: add-model-modal */}
 
 | Field | Description |
 |-------|-------------|
-| **Name** | Display name shown in the agent creation wizard (e.g., "Claude Sonnet", "GPT-4o") |
-| **Provider** | The LangChain integration class the Runtime uses. Determines the API format. |
-| **Model ID** | The exact identifier used by the provider API (e.g., `claude-sonnet-4-20250514`, `gpt-4o`) |
-| **API Key** | Your provider API key. Stored as a [secret](/core-concepts/secrets) automatically. |
-| **Base URL** | Optional. Override the default API endpoint. |
+| **Name** | A friendly name shown in the agent builder (e.g., "GPT-4o Production", "Claude Sonnet Production") |
+| **Connection type** | Where the model is hosted — OpenAI, Anthropic, Groq, OpenShift AI, Hugging Face, or Custom endpoint |
+| **Model ID** | The identifier your provider expects (e.g., `gpt-4o`, `claude-sonnet-4-20250514`, `meta-llama/Llama-3.1-8B-Instruct`) |
+| **Endpoint** | Shown based on connection type — custom URL for OpenShift or self-hosted servers; optional for Hugging Face dedicated endpoints |
+| **Credentials** | API key stored as a [secret](/core-concepts/secrets) in the vault |
 
-## Supported providers
+Studio configures the technical connection for you. You choose where the model lives; agents reference the connection by name.
 
-| Provider | Example Model IDs |
-|----------|------------------|
-| `anthropic` | `claude-sonnet-4-20250514`, `claude-haiku-4-5-20251001` |
-| `openai` | `gpt-4o`, `gpt-4o-mini`, `o1-preview` |
-| `groq` | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` |
-| `google` | `gemini-1.5-pro`, `gemini-1.5-flash` |
-| `mistral` | `mistral-large-latest`, `mistral-small-latest` |
-| `cohere` | `command-r-plus`, `command-r` |
-| `meta` | `meta-llama/Llama-3.3-70B-Instruct` |
+## Connection types
+
+| Connection type | When to use | Example Model IDs |
+|-----------------|-------------|-------------------|
+| **OpenAI** | OpenAI or OpenAI-compatible cloud APIs | `gpt-4o`, `gpt-4o-mini` |
+| **Anthropic** | Claude models | `claude-sonnet-4-20250514`, `claude-3-5-haiku-20241022` |
+| **Groq** | Groq-hosted models | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` |
+| **OpenShift AI** | Models served in your OpenShift cluster | `llama-3-8b-instruct`, `mistral-7b-instruct` |
+| **Hugging Face** | Dedicated Inference Endpoints or Hub repo IDs | `meta-llama/Llama-3.1-8B-Instruct` |
+| **Custom endpoint** | vLLM, TGI, LM Studio, or other self-hosted servers | `llama-3`, `mistral-7b` |
 
 <Tip>
-  All providers use the OpenAI-compatible interface under the hood. If your provider supports OpenAI-compatible endpoints, you can register it by setting the **Base URL** to your provider's endpoint and using the `openai` provider type.
+  For local or self-hosted OpenAI-compatible servers (Ollama, vLLM, TGI), choose **Custom endpoint** and set the full base URL (e.g., `http://localhost:11434/v1`).
 </Tip>
 
-## API keys become secrets
+## Credentials become secrets
 
-When you save a model with an API key, Studio automatically:
-1. Stores the key in the Registry secrets store with a name based on the provider (e.g., `ANTHROPIC_API_KEY`)
-2. Replaces the raw key in the model config with `$ANTHROPIC_API_KEY`
+When you save a model connection with a new API key, Studio:
 
-The raw key is never stored in plain text after this point. See [Secrets](/core-concepts/secrets) for how this works.
+1. Stores the key in the Registry secrets store with a suggested name (e.g., `OPENAI_API_KEY`, `OPENSHIFT_AI_API_KEY`)
+2. References the secret in the connection config — the raw key is never stored in plain text
 
-**To rotate a key**: Edit the model and enter the new API key. The secret is updated and all agents using that model pick up the new key automatically.
+See [Secrets](/core-concepts/secrets) for how this works.
 
-## Base URL use cases
+**To rotate a key**: Edit the connection and enter a new secret value. All agents using that connection pick up the new key automatically.
 
-The **Base URL** field lets you use:
-- **OpenAI-compatible proxies**
-- **Local endpoints** — Ollama (`http://localhost:11434/v1`), LM Studio
-- **Custom deployments** — self-hosted vLLM, TGI
+## Endpoint guidance
+
+| Connection type | Endpoint behavior |
+|-----------------|-------------------|
+| **OpenAI** | Default endpoint works for api.openai.com; use custom URL only for proxies or gateways |
+| **Anthropic** | Endpoint is configured automatically |
+| **Groq** | Default Groq endpoint is used automatically |
+| **OpenShift AI** | Base URL of your model's inference route in the cluster (usually ending in `/v1`) |
+| **Hugging Face** | Required for dedicated Inference Endpoints; leave empty for serverless Hub models using `org/model` IDs |
+| **Custom endpoint** | Full base URL of your server (e.g., `http://localhost:11434/v1`) |
+
+## Using connections in agents
+
+When creating or editing an agent, select an existing model connection from the inference tab. You do not re-enter credentials — agents inherit authentication from the connection.
 
 ## Next steps
 
 <Card title="Creating an Agent" icon="robot" href="/platform/agent-creation/overview">
-  Once you have a model, you're ready to create your first agent.
+  Once you have a model connection, you are ready to create your first agent.
 </Card>
