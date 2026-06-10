@@ -41,7 +41,6 @@
             "products/studio/platform/settings/overview",
             "products/studio/platform/settings/models",
             "products/studio/platform/settings/mcp-servers",
-            "products/studio/platform/settings/embeddings",
             "products/studio/platform/settings/sentinels"
           ]
         },
