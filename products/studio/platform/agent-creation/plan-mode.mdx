@@ -1,0 +1,59 @@
+---
+title: "Plan Mode"
+description: "Let the agent break work into a task checklist it plans, tracks, and works through one item at a time."
+---
+
+**Plan Mode** turns your agent into a planner. Instead of answering in a single pass, the agent writes a **task checklist**, then works through it one task at a time — updating each task's status as it goes until every task is resolved.
+
+Use it for multi-step work: research-and-report, "do X then Y then Z", tool-heavy jobs, or any request where you want the agent to organize the work before doing it.
+
+{/* screenshot: plan-mode-toggle */}
+
+## Enabling Plan Mode
+
+In the **Profile** step, find the **Plan Mode** block and turn on **Enable Plan Mode**.
+
+Plan Mode works **with or without tools**:
+
+- **With MCP servers or Agent-to-Agent** — the agent plans, then calls tools task by task.
+- **Standalone (no tools)** — the agent still plans and tracks a complex, multi-step answer using only its own reasoning.
+
+<Note>
+  Plan Mode is available to **all users** — it does not require Dev Mode. Turning it on runs your agent on the tool-using (native) execution strategy behind the scenes.
+</Note>
+
+## Require all tasks completed
+
+Under the toggle, **Require all tasks completed before finishing** controls how strict the plan is:
+
+| Setting | Behavior |
+|---------|----------|
+| **Off** (default) | The plan is advisory. The agent may deliver a final answer at any time, even with tasks still open. |
+| **On** | The agent may **not** finish until every task is resolved (done, failed, or blocked). Use it when partial answers are unacceptable. |
+
+## Task statuses
+
+As the agent works, each task carries one of four statuses:
+
+| Status | Meaning |
+|--------|---------|
+| **Pending** | Not started yet. |
+| **Done** | Completed successfully. |
+| **Failed** | Attempted but did not succeed (the agent records why). |
+| **Blocked** | Cannot proceed (e.g. a missing prerequisite; the agent records why). |
+
+## Execution limits
+
+When Plan Mode is on, the **Execution limits** (max steps, max concurrent tools) also apply — **Max steps** bounds how many iterations the plan loop can run before the agent stops, even without external tools configured.
+
+## When to use Plan Mode
+
+- The request is **multi-step** and benefits from being organized up front.
+- You want **visibility** into how the agent is breaking down and progressing through the work.
+- You need the agent to **finish everything** it set out to do (pair with *Require all tasks completed*).
+
+## Next steps
+
+<Card title="Back to Agent Overview" icon="arrow-left" href="/platform/agent-creation/overview">
+  Review the full wizard overview and what's available in each step.
+</Card>
