@@ -64,6 +64,12 @@ See [Secrets](/core-concepts/secrets) for how this works.
 
 When creating or editing an agent, select an existing model connection from the inference tab. You do not re-enter credentials — agents inherit authentication from the connection.
 
+## Using connections in TrustLens
+
+TrustLens uses the same model connections for its Judge and Guardian roles. Configure the provider, model ID, endpoint, and credential once in **Model Connections**, then select that connection in the **TrustLens** settings tab.
+
+Updating or rotating a model connection keeps credential management in one place. TrustLens supports OpenAI, Groq, and OpenAI-compatible custom connections.
+
 ## Next steps
 
 <Card title="Creating an Agent" icon="robot" href="/platform/agent-creation/overview">
