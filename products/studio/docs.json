@@ -40,6 +40,7 @@
               "platform/agent-creation/integration-channels",
               "platform/agent-creation/pre-processor",
               "platform/agent-creation/memory",
+              "platform/agent-creation/plan-mode",
               "platform/agent-creation/dev-mode"
             ]
           },
