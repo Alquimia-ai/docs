@@ -9,31 +9,76 @@ The Alquimia stack runs entirely via Docker Compose. No local builds, no depende
 
 - **Docker Desktop** (v24+) or Docker Engine + Docker Compose v2
 - **Git**
-- **8 GB RAM** minimum (16 GB recommended if using local models with Ollama)
+- **OpenSSL** (ships with macOS and most Linux distributions) — used to generate local secrets
+- **16 GB RAM** recommended. The default stack runs 15 services including Redpanda, Postgres, Qdrant, MinIO and Vault; 8 GB will start but leaves little headroom once you add Ollama or the observability profile.
+
+<Note>
+  The `runtime`, `studio` and `trustlens` images are `linux/amd64` only. On Apple Silicon they run under emulation, so expect slower first boots.
+</Note>
 
 ## Quick start
 
 ```bash
 git clone https://github.com/alquimia-ai/alquimia-local.git
 cd alquimia-local
-cp .env.example .env
+./scripts/bootstrap-env.sh
 docker compose up -d
 ```
 
 {/* screenshot: docker-compose-up-output */}
 
-Studio is now running at **http://localhost:3001**.
+<Warning>
+  `cp .env.example .env` is **not** enough on its own. The runtime needs an RSA private key and several HMAC secrets that can't sensibly be hand-authored. `bootstrap-env.sh` copies the template and fills all of them in with freshly generated values. It refuses to overwrite an existing `.env` unless you pass `--force`.
+</Warning>
+
+When it finishes, the only values still marked `CHANGE_ME` are the cloud-provider API keys:
+
+```
+ANTHROPIC_API_KEY, OPENAI_API_KEY, GROQ_API_KEY
+```
+
+Set whichever your `CLOUD_PROVIDERS` list uses (`CLOUD_PROVIDERS=anthropic` by default, so just `ANTHROPIC_API_KEY`), then push it into the secret store:
+
+```bash
+docker compose run --rm runtime-init
+```
+
+<Note>
+  `runtime-init` deliberately **skips** any key still set to `CHANGE_ME`, so a placeholder is never stored as though it were a real credential. The runtime resolves secrets from Vault at inference time — not from `.env` — so a key added to `.env` without re-running this step won't take effect.
+</Note>
+
+Studio is now running at **http://localhost:3001**, Insight Hub at **http://localhost:3000**.
 
 <Tip>
   On first startup, give the stack **30–60 seconds** to finish bootstrapping before logging in.
 </Tip>
 
-If your `.env` uses the **Lite auth strategy** for Studio or InsightHub, the default credentials are:
+## Verify the stack
+
+```bash
+./scripts/smoke-test.sh
+```
+
+This is the verification entry point. It checks the runtime's health endpoints, every data-plane service, the secret store, Studio's seeded model list (through a real authenticated login, not just a file read), and cross-service auth. Add `--with-observability` if you started that profile.
+
+A clean run reports `failed: 0` and exits 0. Checks that can't apply are reported as `SKIP` rather than passing quietly — notably **inference is skipped until you register an agent**, so a green run means every component is healthy and talking to its neighbours, not that an agent has generated a response.
+
+## Logging in
+
+With the **Lite auth strategy** (the default for local development), both Studio and Insight Hub use:
 
 | Field | Value |
 |-------|-------|
-| Username | `admin` |
-| Password | `admin` |
+| Username | `admin@alquimia.ai` |
+| Password | `alquimia` |
+
+To change them, regenerate the hash — the `password_hash` field holds a **base64-encoded** bcrypt hash, not a raw one:
+
+```bash
+cd ../studio && node -e 'const{hashSync}=require("bcryptjs");console.log(Buffer.from(hashSync("NEWPASS",10),"utf-8").toString("base64"))'
+```
+
+Then update `STUDIO_AUTH_LITE_USERS` and `INSIGHT_HUB_AUTH_LITE_USERS` in `.env`.
 
 <Warning>
   Change the default Lite credentials before exposing the stack to any network. Lite auth is intended for local development only.
@@ -43,7 +88,18 @@ If your `.env` uses the **Lite auth strategy** for Studio or InsightHub, the def
 
 **Studio is where you register cloud LLMs** (Anthropic, OpenAI, Groq, etc.): open **Settings → Models Registry**, add each model, and paste the API key — credentials are stored as [secrets](/products/studio/core-concepts/secrets). Use **Base URL** when you point at OpenAI-compatible gateways, proxies, or self-hosted endpoints; you are not limited to a fixed list baked into `.env`.
 
-(The optional Ollama workflow below still uses Compose for local pull-and-register — see [Local models with Ollama](#local-models-with-ollama).)
+Alternatively, models listed in `.env` are seeded into Studio automatically on first boot. To add a provider that way:
+
+1. Append its name to `CLOUD_PROVIDERS` (space-separated).
+2. Define `{UPPER}_API_KEY`, `{UPPER}_BASE_URL` and `{UPPER}_MODELS` for it.
+3. Re-run both seed steps:
+
+```bash
+docker compose run --rm runtime-init
+docker compose run --rm studio-init
+```
+
+Every chat model — cloud or local — is registered with `provider: openai` plus a custom base URL, because the runtime speaks OpenAI-compatible endpoints. Anthropic, Groq and Ollama all go through that path. Seeding is idempotent: re-running it never duplicates a model or overwrites one you've edited by hand.
 
 ## Local models with Ollama
 
@@ -51,15 +107,19 @@ The stack includes optional Ollama support for running inference locally (CPU-ba
 
 ```bash
 # Add to .env before starting
-OLLAMA_MODELS=qwen2.5:0.5b nomic-embed-text
+OLLAMA_MODELS=qwen2.5:0.5b
 
 # Start with the local models profile
 docker compose --profile with-local-models up -d
 ```
 
-Naming convention for `OLLAMA_MODELS`:
-- Models with **`embed`** in the name → registered as **Embeddings Models** in Studio
-- All others → registered as **chat models**
+
+To configure embeddings, edit `config/embeddings.yaml`. The default uses a built-in local provider and needs no setup. Valid `provider_id` values are `inmemory`, `openai`, `huggingface` and `huggingface_hub` — there is no dedicated Ollama provider, so Ollama embeddings go through `openai` pointed at its OpenAI-compatible endpoint. After editing, reload the file and restart the runtime:
+
+```bash
+docker compose run --rm runtime-bootstrap
+docker compose restart runtime
+```
 
 <Warning>
   Ollama runs on CPU inside Docker. Models larger than 3B parameters require significant RAM. Recommended: use 0.5B–3B models for local development.
@@ -74,6 +134,20 @@ docker compose exec ollama ollama pull llama3.2:3b
 # Re-run studio-init to register it in Studio
 docker compose --profile with-local-models run --rm studio-init
 ```
+
+## Optional profiles
+
+Two profiles layer on top of the default stack, and they combine:
+
+```bash
+# TrustLens (evaluation/observability) + Prometheus
+docker compose --profile with-observability up -d
+
+# Ollama for local inference
+docker compose --profile with-local-models up -d
+```
+
+TrustLens evaluates agent responses using a **judge model**, which must be capable enough to return structured output within the schema's bounds. Small models (under a few billion parameters) commonly fail this — they return scores on the wrong scale and every evaluation job ends in `failed` with no scores published, which shows up as an empty metrics panel in Studio. Prefer a cloud model or a larger local one as the judge.
 
 ## Useful commands
 
@@ -93,6 +167,10 @@ docker compose down -v
 # Restart a single service
 docker compose restart studio
 ```
+
+<Note>
+  `down -v` removes every volume, including Postgres. The database-creation scripts only run on a first, empty initialisation — so if you later add a database, you'll need `down -v` or to create it by hand.
+</Note>
 
 ## Next steps
 

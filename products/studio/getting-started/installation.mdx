@@ -9,18 +9,28 @@ The Alquimia stack runs entirely via Docker Compose. No local builds, no depende
 
 - **Docker Desktop** (v24+) or Docker Engine + Docker Compose v2
 - **Git**
-- **8 GB RAM** minimum (16 GB recommended if using local models with Ollama)
+- **OpenSSL** (ships with macOS and most Linux distributions) — used to generate local secrets
+- **16 GB RAM** recommended. The default stack runs 15 services including Redpanda, Postgres, Qdrant, MinIO and Vault; 8 GB will start but leaves little headroom once you add Ollama or the observability profile.
 
 ## Quick start
 
 ```bash
 git clone https://github.com/alquimia-ai/alquimia-local.git
 cd alquimia-local
-cp .env.example .env
+./scripts/bootstrap-env.sh
 docker compose up -d
 ```
 
 {/* screenshot: docker-compose-up-output */}
+
+
+```bash
+docker compose run --rm runtime-init
+```
+
+<Note>
+  `runtime-init` deliberately **skips** any key still set to `CHANGE_ME`, so a placeholder is never stored as though it were a real credential. The runtime resolves secrets from Vault at inference time — not from `.env` — so a key added to `.env` without re-running this step won't take effect.
+</Note>
 
 Studio is now running at **http://localhost:3001**.
 
@@ -28,11 +38,36 @@ Studio is now running at **http://localhost:3001**.
   On first startup, give the stack **30–60 seconds** to finish bootstrapping before logging in.
 </Tip>
 
+## Verify the stack
+
+```bash
+./scripts/smoke-test.sh
+```
+
+A clean run reports `failed: 0` and exits 0. Checks that can't apply are reported as `SKIP` rather than passing quietly — notably **inference is skipped until you register an agent**, so a green run means every component is healthy and talking to its neighbours, not that an agent has generated a response.
+
+## Logging in
+
+With the **Lite auth strategy** (the default for local development):
+
+| Field | Value |
+|-------|-------|
+| Username | `admin@alquimia.ai` |
+| Password | `alquimia` |
+
+The `password_hash` field in `STUDIO_AUTH_LITE_USERS` holds a **base64-encoded** bcrypt hash, not a raw one — regenerate it if you change the password.
+
+<Warning>
+  Change the default Lite credentials before exposing the stack to any network. Lite auth is intended for local development only.
+</Warning>
+
 ## Cloud and custom models
 
 **Studio is where you register cloud LLMs** (Anthropic, OpenAI, Groq, etc.): open **Settings → Models Registry**, add each model, and paste the API key—credentials are stored as [secrets](/core-concepts/secrets). Use **Base URL** when you point at OpenAI-compatible gateways, proxies, or self-hosted endpoints; you are not limited to a fixed list baked into `.env`.
 
-(The optional Ollama workflow below still uses Compose for local pull-and-register—see [Local models with Ollama](#local-models-with-ollama).)
+Models listed in `.env` are also seeded automatically on first boot. To add a provider that way, append its name to `CLOUD_PROVIDERS`, define `{UPPER}_API_KEY`, `{UPPER}_BASE_URL` and `{UPPER}_MODELS`, then re-run `runtime-init` and `studio-init`.
+
+Every chat model — cloud or local — is registered with `provider: openai` plus a custom base URL, because the runtime speaks OpenAI-compatible endpoints. Seeding is idempotent: it never duplicates a model or overwrites one you've edited by hand.
 
 ## Local models with Ollama
 
@@ -40,15 +75,19 @@ The stack includes optional Ollama support for running inference locally (CPU-ba
 
 ```bash
 # Add to .env before starting
-OLLAMA_MODELS=qwen2.5:0.5b nomic-embed-text
+OLLAMA_MODELS=qwen2.5:0.5b
 
 # Start with the local models profile
 docker compose --profile with-local-models up -d
 ```
 
-Naming convention for `OLLAMA_MODELS`:
-- Models with **`embed`** in the name → registered as **Embeddings Models** in Studio
-- All others → registered as **chat models**
+
+To configure embeddings, edit `config/embeddings.yaml`, then reload it and restart the runtime:
+
+```bash
+docker compose run --rm runtime-bootstrap
+docker compose restart runtime
+```
 
 <Warning>
   Ollama runs on CPU inside Docker. Models larger than 3B parameters require significant RAM. Recommended: use 0.5B–3B models for local development.
