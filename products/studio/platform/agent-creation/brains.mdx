@@ -1,0 +1,87 @@
+---
+title: "Brains"
+description: "Attach a versioned, signed knowledge artifact that your agent queries as a tool."
+---
+
+A Brain is a packaged body of knowledge, curated outside Studio, published as a signed artifact and pinned to a version. Your agent does not read a Brain the way it reads your documents: it calls a search tool and receives verified knowledge blocks with their provenance, and then writes its own answer from them.
+
+That difference matters. A Brain conserves, validates and returns knowledge; the model processes and uses it. The Brain never writes the answer.
+
+{/* screenshot: agent-creation-knowledge-fork */}
+
+## Knowledge bases or a Brain?
+
+An agent can use both, and as many of each as it needs.
+
+| | [Knowledge bases](/platform/agent-creation/documents) | Brain |
+|---|---|---|
+| **Who owns the content** | Your workspace. Curated in [Knowledge](/platform/knowledge/overview) and shared by any agent. | Its publisher. You subscribe to a published artifact. |
+| **How the agent gets it** | Retrieved passages in the prompt, a search tool, or direct file reads. | The agent calls a search tool and receives verified blocks. |
+| **What comes back** | Text chunks. | Knowledge blocks with their provenance and a retrieval score. |
+| **Versioning** | None — a knowledge base is whatever it holds now. | Pinned to a version you choose. |
+| **What you control** | Which knowledge bases, and how the agent searches each. | Which memory modules the agent may read. |
+
+## Prerequisites
+
+A Brain must be registered in your workspace before an agent can use it. Registration happens on the [Discover](/platform/discover) page, under the **Brains** tab, where you also choose the version and which memory modules agents may read.
+
+Brains are built and published with the Alquimia CLI, not in Studio. The protocol requires that a model propose knowledge blocks and the protocol validate and commit them, so an ingestion screen in Studio would sit on the wrong side of that gate.
+
+## Memory modules
+
+A Brain is organized into modules, each answering a different kind of question. Access is granted per module rather than per Brain, because they are not equivalent in sensitivity.
+
+| Module | What it holds |
+|--------|---------------|
+| **Semantic** | Settled facts and concepts. What the brain knows to be true. |
+| **Procedural** | Steps, policies and how-to knowledge. How something is done. |
+| **Episodic** | Specific events in time. What happened, and when. |
+| **Canonical** | Raw observed evidence, unprocessed. The source material behind the other modules. |
+| **Provenance** | The audit ledger: who asserted what, when, and on what basis. |
+
+<Warning>
+  `Canonical` and `Provenance` expose raw source evidence and the audit trail. Withhold them unless an agent genuinely needs them — that asymmetry is why the access policy is per module in the first place.
+</Warning>
+
+A module with no grant is denied outright. There is no Brain-wide fallback.
+
+## Attaching a Brain to an agent
+
+Open the **Knowledge** step, pick the Brain from **Add knowledge…** under **Brains**, and click **Add**. Repeat for each Brain the agent should use. Brains sit in the same list as the agent's knowledge bases, and each one can be attached once. Expand **What this agent reads from it** under a Brain to tune it.
+
+{/* screenshot: agent-creation-knowledge-pod */}
+
+| Field | Description |
+|-------|-------------|
+| **Memory modules** | The modules granted to this workspace. Uncheck one to narrow what *this* agent reads. An agent can never read more than the workspace grant allows. |
+| **Results per query** | How many verified blocks each search returns. |
+| **When to use this Brain** | Shown to the model. This text is spliced into the search tool's description and is how the agent decides when to consult the Brain. Up to 3000 characters. |
+
+Each Brain adds its own `brain-search-<brain>` tool to the agent and switches its evaluation strategy to a tool-capable one, since a tool that is never offered is a tool the model cannot use.
+
+<Note>
+  Module grants are workspace-level. Changing them from an agent would silently change every other agent using the same Brain, so the panel only lets you narrow for this agent. To change the grant itself, go to Discover.
+</Note>
+
+## What the agent receives
+
+Each search returns knowledge blocks, each carrying its provenance and a retrieval score — not prose, and not raw chunks. The agent can cite block IDs in its answer.
+
+The contract is soundness, not completeness: what comes back is verified against the installed snapshot, but a search is not a guarantee that everything relevant was found.
+
+The runtime also distinguishes "the Brain could not be consulted" from "the Brain found nothing". They are different results, and an agent should not answer from its own training as though the Brain had been searched.
+
+## Changing versions
+
+A Brain is pinned to the version selected when it was registered. Changing it applies to every agent using that Brain, and takes about six minutes to reach agents that already cached the previous version. See [Discover](/platform/discover) for the registration and version workflow.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Discover" icon="compass" href="/platform/discover">
+    Browse the Brain catalog, register a Brain, and manage its grants.
+  </Card>
+  <Card title="Knowledge bases" icon="book-open" href="/platform/agent-creation/documents">
+    Use the workspace's own documents instead of subscribing to a Brain.
+  </Card>
+</CardGroup>

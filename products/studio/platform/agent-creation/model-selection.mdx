@@ -9,7 +9,7 @@ description: "Select the model connection that powers the agent and configure it
 
 ## Model connection
 
-The **Model connection** dropdown lists all connections registered in [Settings → Model Connections](/platform/settings/models). Select the one this agent should use — credentials are inherited from the connection; you do not re-enter API keys here.
+The **Model connection** dropdown lists all connections registered under [Models](/platform/settings/models). Select the one this agent should use — credentials are inherited from the connection; you do not re-enter API keys here.
 
 Each option shows the connection name, type, and model ID (e.g., **GPT-4o Production — OpenAI** with `gpt-4o` below).
 
@@ -20,7 +20,7 @@ Different agents in the same workspace can use different connections. Common pat
 - Use a custom endpoint for local development and testing
 
 <Warning>
-  If the dropdown is empty, no model connections have been configured yet. Go to [Settings → Model Connections](/platform/settings/models) and add at least one.
+  If the dropdown is empty, no model connections have been configured yet. Go to [Models](/platform/settings/models) and add at least one.
 </Warning>
 
 ## Model parameters
@@ -40,9 +40,29 @@ Common parameters:
 | `frequency_penalty` | float | Reduces repetition of frequently used words |
 | `presence_penalty` | float | Encourages the model to introduce new topics |
 
+### Parameters the provider does not define
+
+The runtime checks model parameters against the provider's own list. It checks them when you save the agent, and again every time the agent answers. Studio sends each parameter you add as follows:
+
+- **The provider defines it:** it is sent as-is.
+- **The provider does not define it** (`top_k`, `frequency_penalty` and `seed` on OpenAI, for example): it is sent inside `model_kwargs`, which passes it through to the provider API unchanged.
+
+You enter both kinds the same way, and both load back as separate rows.
+
+| Connection type | Parameters sent as-is |
+|---|---|
+| All | `model`, `temperature`, `max_tokens`, `top_p`, `timeout`, `max_retries`, `default_headers`, `model_kwargs` |
+| OpenAI, OpenAI-compatible and every provider that uses the OpenAI wire format | `api_key`, `base_url`, `organization`, `reasoning`, `reasoning_effort`, `output_version`, `store`, `extra_body` |
+| Groq | `api_key`, `groq_api_key`, `base_url`, `reasoning_format`, `reasoning_effort`, `output_version` |
+| Hugging Face | `api_key`, `base_url` |
+
 <Note>
-  Supported parameters vary by connection type. Unsupported parameters are silently ignored by the runtime. Refer to your provider's API documentation for the full list.
+  Passing a parameter through `model_kwargs` does not make the provider accept it. A parameter the provider API does not know still fails at inference, and the error comes from the provider.
 </Note>
+
+<Warning>
+  Agents saved before this change may still carry an undefined parameter at the top level. On runtime 0.5.3 or later such an agent fails as soon as it answers. Open the agent and save it again to move the parameter into `model_kwargs`.
+</Warning>
 
 ## Next steps
 
@@ -52,7 +72,7 @@ With a model connection selected, your agent is ready to run. From here you can 
   <Card title="MCP Tools" icon="wrench" href="/platform/agent-creation/mcp-tools">
     Connect external tools and APIs.
   </Card>
-  <Card title="Knowledge Base" icon="book" href="/platform/agent-creation/knowledge-base">
+  <Card title="Documents" icon="file-text" href="/platform/agent-creation/documents">
     Add document retrieval for RAG-based answers.
   </Card>
 </CardGroup>

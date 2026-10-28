@@ -1,0 +1,154 @@
+---
+title: "Zero Trust"
+description: "How the platform decides what an agent may do with tools, documents, and Brains."
+---
+
+An agent asks to call `delete_repository`. Something has to decide whether that runs.
+
+Zero Trust is how the platform answers. Nothing is allowed because it was reachable: every tool call and every knowledge search is checked against a rule someone wrote down, and anything without a rule is refused.
+
+This page explains the model once. The pages it links to cover each surface in detail.
+
+## Two things, not one
+
+The confusion worth clearing up first: authorization has two halves, and they live in different places.
+
+<Columns cols={2}>
+  <Card title="What an action is" icon="tag">
+    Set **once per connection or topic**, shared by every agent. `delete_repository` is irreversible and only Destructive agents may call it — that is true regardless of which agent asks.
+  </Card>
+  <Card title="What an agent is" icon="shield">
+    **Derived per agent** from what you selected. An agent that reads issues and opens them is a Change agent.
+  </Card>
+</Columns>
+
+At runtime the check is one comparison: **is this agent's level in the list this action allows?**
+
+You do not authorize each agent against each tool. The classification is written once and every agent is measured against it. If it lived on the agent instead, every agent would re-answer "is `delete_repository` dangerous?" and they would eventually disagree.
+
+## The three levels
+
+Studio names them for what the agent may do, and the platform docs and logs use the underlying words:
+
+| Studio | Platform | Means |
+| --- | --- | --- |
+| Read-only | `reader` | Looks things up. Changes nothing. |
+| Change | `editor` | Makes changes that can be undone. |
+| Destructive | `operator` | Makes changes that cannot be undone. |
+
+A level is **not a permission**. Holding Destructive grants nothing on its own — the permission is per action. An agent is refused unless the action it calls lists its level.
+
+## Severity sets a ceiling nobody can raise
+
+Each action carries a severity, and severity limits which levels can *ever* be granted to it:
+
+| Severity | Levels that may be granted |
+| --- | --- |
+| Reads only | Reader, Editor, Operator |
+| Changes, reversible | Editor, Operator |
+| Changes, permanent | Operator |
+
+Granting a level the severity forbids does not fail — it is **discarded**. Mark an action permanent, grant it to Reader, and you have granted nobody anything.
+
+Studio disables those options rather than letting you pick one, so you are not left believing you granted something.
+
+## How an agent's level is chosen
+
+Studio derives it: **the lowest level that can invoke every action the agent has access to.**
+
+Take an agent holding one connection with two classified actions:
+
+```
+list_issues    reads only           → Reader, Editor, Operator may call it
+create_issue   changes, reversible  → Editor and Operator only
+```
+
+A Reader cannot call `create_issue`. An Editor can call both. So the agent is **Editor**.
+
+Least privilege falls out of this: the agent is never handed a level it does not need, and adding a level to an action it already permits does not raise it. Add Operator to `create_issue` and the agent stays Editor.
+
+<Note>
+A hand-set level is kept, not overwritten. Raising it silently widens what an agent can reach; lowering it removes a capability its author chose. Studio reports the disagreement and offers the derived value instead of applying it.
+</Note>
+
+### When no level works
+
+Two actions can have grant lists that do not overlap — one granted only to Read-only, another only to Destructive. No single level satisfies both, and Studio blocks rather than picking one. Remove one of the actions or widen a grant.
+
+### With several connections
+
+The level is derived across **all** selected connections at once. More connections can only hold it the same or push it up, never down, because each one adds a constraint.
+
+Two things to expect as you add connections:
+
+- **Conflicts get more likely.** Every additional grant list is another set that has to intersect.
+- **Tool names are not namespaced.** Authorization resolves each name within its own connection, so two servers can both expose `search` without interfering. The model, however, sees one flat list of names — so duplicates are a problem for the agent's reasoning, not for authorization.
+
+## Narrowing a single agent
+
+The **capability ceiling** is the one authorization control that lives on the agent. It intersects with the grants, so it can only ever remove levels.
+
+Use it when one agent should hold less than its tools would allow. Leaving it unset means no restriction; setting it to a level none of the agent's actions grant refuses those actions, and Studio says which ones before you save.
+
+## Knowledge follows the same model
+
+A **knowledge base** (a registered topic, managed in [Knowledge](/platform/knowledge/overview)) carries the same three fields as a tool action: severity, the levels that may query it, and whether it requires approval. The agent is measured against it the same way: its level must be among the granted levels that the severity allows, and a knowledge base with no granted level refuses every agent.
+
+Approval also works as it does for tools. A knowledge base with approval on, or classified *Changes, permanent*, pauses the conversation each time an agent searches it, until someone approves. A rejection tells the agent the knowledge was not available. A single file can require approval too; then reading it, or searching its knowledge base, pauses the same way.
+
+*Reads only* lets you grant any level. *Changes, reversible* narrows the readers to Editor and Operator agents, and *Changes, permanent* to Operator agents. Studio warns when a setting refuses every agent.
+
+Agents reference a knowledge base by its registered id (`topic_id`), not by the underlying collection — with Zero Trust on or off, since every supported runtime (0.6.0 and later) accepts it. Authorization resolves grants from the registration, so an agent pointing at a raw collection has nothing to check against. An agent that consumes a knowledge base needs a level: Studio saves such an agent as at least Reader.
+
+### Brains
+
+Brains carry a policy per memory module rather than one policy for the whole artifact, set when you register the Brain and change it by editing its grants. Studio only ever issues read-only grants for Brains, so a Brain-backed agent needs no more than Reader to use one.
+
+## Approval pauses a tool call
+
+Marking a tool action **Ask a human first** — and a permanent action always is, whatever the checkbox says — makes the platform stop the conversation and wait for someone to approve.
+
+The request carries the tool name and the arguments it was called with, so the decision is made against something specific. A rejection can carry a reason, and both the decision and who made it are kept in the audit trail.
+
+In **Try me** you answer it there. Anywhere else the agent runs, whoever it is talking to answers it; a request raised through an integration channel has to be answered on that channel. A request is decided once — a second answer to the same one is refused.
+
+Knowledge searches pause the same way, including **Always retrieve**, where the pause happens before the agent replies.
+
+## Nothing classified means nothing allowed
+
+There is no permissive default anywhere in this model:
+
+- A connection registered and never classified does nothing at all.
+- A tool name matching no rule is refused — there is no connection-wide fallback.
+- An agent referencing a connection that no longer exists is refused outright, ignoring every other grant.
+- An unregistered topic is worse than refused: it fails when the agent is built.
+
+Forgetting fails closed. That is the point, and it is why Studio lists what is unclassified before you save rather than after something is denied.
+
+## Turning enforcement on
+
+Your runtime ships these checks **off**. Classification still saves and takes effect the day they are switched on.
+
+Studio cannot detect whether your runtime enforces them, so whoever installed it declares the answer with `NEXT_PUBLIC_TOOL_AUTHZ_ENABLED`, matching the runtime's own setting. It changes how loudly unclassified connections are flagged, never what you can configure.
+
+Switch it on before the runtime, not after, and Studio will show you which agents would be refused while nothing is refusing them yet.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Classifying tools" icon="list-checks" href="/platform/tools/classifying-tools">
+    Setting severity and levels on an MCP connection.
+  </Card>
+  <Card title="MCP servers" icon="plug" href="/platform/tools/overview">
+    Connecting a server, and testing it.
+  </Card>
+  <Card title="Agent capability" icon="shield" href="/reference/agent-capability">
+    How Studio derives an agent's level and reports what would be refused.
+  </Card>
+  <Card title="Documents" icon="file-text" href="/platform/agent-creation/documents">
+    Uploading documents and setting who may search them.
+  </Card>
+  <Card title="Brains" icon="box" href="/platform/agent-creation/brains">
+    Registering a Brain and choosing which modules an agent may read.
+  </Card>
+</Columns>

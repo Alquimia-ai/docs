@@ -1,0 +1,57 @@
+---
+title: "MCP Servers"
+description: "Register external tool servers that agents can call to interact with the world."
+---
+
+MCP (Model Context Protocol) is an open standard for connecting AI agents to external tools and services. Each MCP server exposes a set of callable functions — tools — that agents can use during a conversation.
+
+Examples: GitHub operations, ClickUp task management, database queries, calendar access, custom internal APIs.
+
+{/* screenshot: tools-mcp-list */}
+
+## Adding an MCP server
+
+On the [Tools](/platform/tools/overview) page, click **Add MCP server**. The **Connection** tab takes five fields:
+
+{/* screenshot: add-mcp-server-modal */}
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name used when selecting MCP servers in agent creation |
+| **Description** | What tools this server provides. Helps you identify it later. |
+| **Transport** | `Streamable HTTP` for most remote servers, `SSE` for older ones |
+| **URL** | The server's endpoint |
+| **Credential** | Optional. A bare token is sent as `Bearer <token>`; anything already naming a scheme is sent as-is |
+
+## Test connection is discovery
+
+**Test connection** asks the server what it exposes. A successful `tools/list` *is* the connection test, so one action both proves the server is reachable and fills in the classification table on the next tab.
+
+<Note>
+  Run it before leaving the Connection tab. Studio stores the URL as a secret and cannot read it back, so this is the moment it holds the real address — afterwards you have to type it again to re-discover.
+</Note>
+
+## Credentials
+
+If the server requires authentication, enter it here. It is stored as a secret and injected at runtime via the `$secretRef` pattern — Studio keeps the key name, never the value.
+
+## Using MCP servers in agents
+
+Once registered here, MCP servers appear under **MCP Tools** during agent creation. See [MCP Tools](/platform/agent-creation/mcp-tools) for how to assign them to agents.
+
+Each MCP server is stored as a tool registration in the runtime. The runtime only lets a
+**platform admin** create, edit or delete tool registrations, so other roles see an error
+saying the runtime does not allow it for their role. A server that an agent still uses cannot
+be deleted.
+
+## Next steps
+
+<Card title="MCP Tools in Agent Creation" icon="wrench" href="/platform/agent-creation/mcp-tools">
+  Add registered MCP servers to an agent.
+</Card>
+
+## Tool access
+
+The server appears on the [Tools](/platform/tools/overview) page with everything else the workspace has registered. Until its operations are classified, its row reads **Unclassified — all denied**: wherever the runtime enforces authorization, agents are refused every tool on it. Click the row to classify it, see who may do what, attach output shields, edit the connection or delete it.
+
+See [Classifying tools](/platform/tools/classifying-tools) for what the levels mean.

@@ -1,0 +1,380 @@
+---
+title: "Evaluate an agent with Roast Me"
+description: "Configure adversarial evaluations, read the conversations they produced, and track how an agent changes across runs."
+---
+
+Roast Me attacks a saved agent with generated probes, records every conversation as evidence, and reports how much of the plan closed. You configure the evaluation in Studio; the red-teaming service executes it and keeps its artifacts permanently.
+
+## Integration status
+
+Studio is being migrated onto the red-teaming service as it exists today. Until that lands, the local preview serves synthetic data shaped like an earlier contract and does not reflect the flow described here.
+
+## Availability
+
+Your deployment must set `ENTERPRISE=true`, and your administrator must connect a red-teaming deployment and its object store. Studio reads run artifacts from that store directly, because red-teaming serves no artifact content over its API.
+
+Studio reads availability from the running server after the dashboard loads. Roast Me entry
+points stay hidden until that check succeeds, and remain hidden if it fails. The result is shared
+across dashboard navigation for that page session; reload after an administrator changes the
+deployment flag. Evaluation routes and actions still check the current server flag independently,
+so an older open page cannot authorize a disabled feature. The same Studio build can run with
+Enterprise enabled or disabled without rebuilding it.
+
+Viewers can read results. Editors can configure evaluations, start runs and classify evidence. Administrators maintain the catalogue library.
+
+On the Dashboard, agents with recorded evaluations show only a Red Teaming icon beside their
+card menu. Select it to open Roast Me. It does not report an evaluation status, result or
+pass/fail verdict; open the evaluation history to read those details.
+
+<Warning>
+red-teaming's API has no authentication of its own. Studio is the only access control in front of it: reach it over a network boundary your deployment controls, and never expose its URL or its object-store credentials outside the server.
+</Warning>
+
+## Before you configure
+
+Two things must be provisioned by an administrator, outside Studio:
+
+- **At least one published catalogue.** A catalogue is the risk taxonomy a run generates from — its principles, their severity weights and rubrics, its plugins and its strategies. Publish one under **Settings → Red Teaming**.
+- **The credentials your runs will name.** Studio never sends an API key. A configuration names a *secret reference* — the name of an environment variable or file — and that name must already resolve inside the red-teaming deployment. A model connection configured in Studio is not usable for evaluation unless the same credential exists there under a known name.
+
+If you will evaluate grounding, the red-teaming deployment also needs pull access to the registry
+your Brains are published to — a private one by credential reference, like every other
+secret it resolves.
+
+Studio checks what it can before it lets you start a run, and names what is missing.
+
+The Studio server requires **Node.js 22.15 or newer** to decompress conversation evidence. The
+Docker image uses Node 22 and checks for zstd support during its build.
+
+### Trust the Brain registry
+
+Studio resolves the saved agent's Brain tag to a digest directly from its OCI registry.
+An administrator must configure trusted destinations on the **Studio server**, not in the
+catalogue JSON or evaluation form:
+
+| Variable | Purpose |
+| --- | --- |
+| `OCI_ALLOWED_REGISTRIES` | Comma-separated exact `host[:port]` values that Studio may read. No schemes, paths or wildcards. |
+| `OCI_ALLOWED_AUTH_HOSTS` | Comma-separated `registry=token-host` pairs permitting an external authentication host for that registry only. |
+| `OCI_REGISTRY_CREDENTIALS` | Comma-separated `registry=user:token` pairs for private pulls. A credential is used only for its matching registry and its trusted authentication host. |
+
+When `OCI_ALLOWED_REGISTRIES` is absent or empty, Studio allows only the host configured in
+`EXTERNAL_REGISTRY_URL`, without its namespace. An explicit list replaces that default. With
+neither configured, direct OCI reads are refused before any request. Host matching ignores case
+and treats HTTPS's default port, `443`, as equivalent to an omitted port; other ports are distinct.
+
+For example, these non-secret settings allow one registry and its separate token server:
+
+```env
+OCI_ALLOWED_REGISTRIES=registry.example.test
+OCI_ALLOWED_AUTH_HOSTS=registry.example.test=auth.example.test
+```
+
+An HTTPS token realm on the registry's own host needs no additional grant. Any other token host
+must be paired explicitly with that registry, even for anonymous pulls. Token URLs cannot contain
+embedded user credentials or fragments. All direct OCI requests use HTTPS and refuse redirects,
+including redirects from the registry probe, token server, manifest and tag-list endpoints.
+Configure the final endpoints directly rather than a redirecting alias.
+
+<Warning>
+The former bare `OCI_REGISTRY_CREDENTIALS=user:token` format is no longer accepted. Before
+deploying this change, migrate it to `registry-host=user:token` in Studio's server secrets.
+A trust refusal appears as `POD_OCI_TRUST_REJECTED` and names the setting to review; retrying
+without correcting that setting will not resolve it. No credential value is included in the error.
+</Warning>
+
+These settings protect Studio's direct digest and tag reads only. The red-teaming deployment
+still needs its own pull access, and the runtime's registry and signature policies are unchanged.
+
+## Configure a saved agent
+
+1. Open an existing agent and select **Roast Me → Configure**.
+2. Choose one or more **catalogues**, then the **plugins** and **strategies** to run. A strategy declared without a plugin is a positive control and never contributes to a rate.
+3. Review the **Brain** shown in Corpus. Studio uses the one attached to the saved agent automatically. If the agent has none, the evaluation runs without grounding; you do not select a Brain here.
+4. Set the **probe context**: the language premises are written in as a BCP-47 tag (`es-419`, `en`), the domain in one phrase, and optionally the tone. A catalogue's localised prompts resolve by exact language match — `es` does not select `es-419`, and there is no English fallback — so Studio shows which strategies will not resolve for your choice.
+5. Set the **target's safety envelope**: pacing between calls, retries, declared capabilities and safe mode. An agent that can act — move money, send messages — requires safe mode, and the run is refused otherwise.
+6. Assign **model roles**: the judge that grades every exchange, and, for the search, a generator and an embedder. Adaptive strategies additionally need a model bound to each attacker id they name. Matching the target's own model as judge shows a methodological warning. The judge's optional output token budget includes reasoning and the final verdict; blank uses the evaluation service's 4096-token default. If a reasoning judge exhausts that budget before producing a verdict, raise it (for example, to `16384`) and save a new revision.
+7. Choose **Profiler** or **Profiler + Exploiter**. The search needs a generator, an embedder, a published realism prior and its thresholds; when any is missing, only Profiler is offered and Studio says which input is absent.
+8. Set **replicas** and the **flagging score** in Execution. The score defaults to `0.5` and determines which conversations appear first for review; it does not change the judge's grades. Wall seconds and target calls are optional limits, both blank by default. Leave a limit blank to omit it from the run specification.
+9. Save. Studio validates the whole configuration against red-teaming's own gate first, and shows its refusal in the service's words rather than paraphrasing it.
+
+Each save creates a new immutable revision. If another user saves first, Studio preserves your draft and asks you to review the newer revision.
+
+### Choose the principles for this run
+
+Changing a plugin or strategy selection also updates **Contract**. Only principles referenced by
+selected attack strategies remain. Deselecting one strategy does not remove its principle while
+another selected strategy still tests it, even through a different plugin. Controls do not keep
+a principle active; selecting only controls, or no attacks, prevents saving.
+
+The remaining weights are normalized proportionally: each original weight is divided by the sum
+of the retained weights. For example, retained weights of `0.4` and `0.2` become `0.666667` and
+`0.333333` when displayed. The judge uses the full-precision values, with their sum equal to 1.
+The rubrics and verdict tokens do not change.
+
+Save a new revision to use this contract in subsequent runs. The published catalogue and previous
+runs are unchanged. Older saved revisions retain their full-catalogue criterion until you change
+the selection and save a new revision. Resuming an older run always keeps its frozen criterion.
+
+<Note>
+**Grounding needs a Brain on the agent.** Probes that test whether the agent invents facts are generated
+from that knowledge. Without a Brain, those strategies stay disabled
+and the run measures black-box behaviour — identity, authorization, escalation, approval.
+
+Studio pins the attached Brain by the digest its version currently points at when you save the
+evaluation revision. If you change the agent's Brain afterward, save a new evaluation revision
+before starting another run. A finished run still points to the exact knowledge it used.
+</Note>
+
+### Switch modes without saving agent edits
+
+Roast Me is a separate mode of the saved agent, with URLs for its overview, runs and comparisons.
+Configure remains the agent editor; links to its sections use `?tab=` rather than another mode.
+Switching between these modes retains unsaved agent edits and shows a warning in Roast Me.
+Return to Configure to save or cancel them. Evaluations always use the saved agent and the
+selected saved evaluation revision, not your agent draft.
+
+Agent drafts are kept in memory in the current page, not recovered after refresh or leaving
+the agent workspace. This retention does not cover unsaved evaluation configuration revisions;
+save those in **Roast Me → Configure** before leaving that form.
+
+## Maintain the catalogue library
+
+Open **Settings → Red Teaming** to list published catalogues and their versions, validate a document before publishing, and publish a new version. Select **Edit** on a catalogue to open its complete JSON document. You can change its contract, principles, plugins, strategies, prompts or other fields, then validate and publish it as a new immutable version. Existing runs keep the version they were configured with.
+
+You need **`platform-admin`** to validate or publish a global catalogue, including a new version
+under an existing global name. **`org-admin`** can manage assistant-specific catalogues in their
+current workspace, but cannot turn a global name into an assistant-specific catalogue. Choose a
+new name to create a separate assistant catalogue. Viewers and editors can read the library but
+do not see publication or editing controls; organization administrators see global catalogues
+read-only. Studio checks these permissions again on the server, including manually edited JSON.
+
+A catalogue is one document carrying its behavioural contract — the principles every exchange is graded against, their severity weights, and the rubric handed to the judge — plus its plugins and strategies. Studio shows that contract read-only, because it is the criterion, not a preference.
+
+Add an optional top-level **`description`** string to explain what the catalogue evaluates:
+
+```json
+{
+  "name": "assistant-security",
+  "description": "Tests scope resistance, privacy and protection of internal instructions."
+}
+```
+
+This is a fragment; retain `schema_version`, `contract`, `plugins` and `strategies` in the complete
+document. Add or edit the description in the JSON when publishing or selecting **Edit**.
+It appears beneath the catalogue's name in Settings, below the catalogue selection row in Scope,
+and above the principles in Contract. Scope and Contract use the loaded catalogue version;
+expanding a different version in Settings shows that version's description.
+
+The description is plain text, not a grading rubric: it changes neither principles nor weights.
+Omit it, use `null` or leave it empty to show no description. Existing catalogues need no migration.
+Changing the description publishes a new immutable version; previous versions remain unchanged.
+
+Publishing is append-only: a new version never changes what an existing run generated, and publishing content identical to the newest version answers that version without writing anything.
+
+Settings separates **Global catalogues** from **Assistant catalogues** in the current workspace.
+Global catalogues are available to every assistant in the deployment. Assistant catalogues show
+their assigned assistant; that assistant's configuration offers its own catalogues alongside the
+global ones, not those assigned to other assistants.
+
+After pasting a JSON document, use **Availability** to choose **Global — all assistants** or a
+specific saved assistant. Only platform administrators see the global option; organization
+administrators must choose an assistant. The same selector appears in **Edit**. It updates the JSON directly;
+you can also edit the field by hand. An assistant-specific document carries this top-level field:
+
+```json
+{
+  "scope": {
+    "agentspace_id": "default",
+    "assistant_id": "test-bpd"
+  }
+}
+```
+
+The example is a fragment; keep the document's contract, plugins and strategies alongside it.
+
+You can navigate the Availability menu with the arrow keys, confirm with Enter and close it
+with Escape without changing the selection. Paste valid JSON first to enable the selector.
+
+Omit `scope` or set it to `null` for a global catalogue. Existing documents without it remain
+global. Both identifiers are required for an assistant-specific catalogue; identical assistant
+IDs in different workspaces are not interchangeable. Studio checks that the selected assistant
+exists in the current workspace, and red-teaming rejects a run whose target does not match the
+selected catalogue version's scope.
+
+Availability belongs to each immutable version. Changing it publishes a new version and moves
+the catalogue to the corresponding Settings group. Existing runs and saved configurations retain
+their pinned version and its original availability. Catalogue names remain unique across the
+deployment; choose a new name when creating a separate assistant-specific catalogue.
+
+## Run and monitor
+
+Start from a saved configuration. Studio shows the phase red-teaming reports — accepted, generating, attacking, complete — and its coverage: how many work units were planned, how many closed, how many failed and how many are pending.
+
+Coverage is counted from what the run actually wrote, so it cannot disagree with the result. The planned count does not exist until probe generation closes; until then Studio shows it as unknown rather than guessing.
+
+The run detail shows an animated indicator above that coverage while the run is active. Its text
+follows the reported phase. The indicator disappears when the run completes, fails or stalls;
+coverage stays visible. With reduced motion enabled, the indicator is static.
+
+You can leave the page and return through **Runs** or the header's evaluation updates.
+
+<Warning>
+**You can cancel an active run** from Runs or its detail page. Pending conversations stop, while conversations already completed remain in the evaluation history. Cancellation cannot be undone or resumed. If you set an optional wall-time or target-call limit, it also bounds the evaluation.
+</Warning>
+
+Two states need reading carefully:
+
+- **Failed** means the most recent attempt died and recorded why. Runs shows the recorded error directly on the stopped evaluation, such as an exhausted budget or a judge that could not produce a verdict; the detail page shows it too. Studio stores that reason with the run; if it cannot read the failure record, it shows the read error and retries. Everything that closed is still stored, and a relaunch resumes from the difference. Check the cause before choosing **Resume**: retrying does not fix an incompatible judge or invalid generated work units.
+
+A failed attempt does not block **Start evaluation**. You can start a separate run from the saved
+configuration, or open the failed run and choose **Resume** to continue its frozen plan. Both
+remain in history. Studio reserves one execution slot per agent: resuming an older run is refused
+while another evaluation holds that slot. An accepted or in-progress run still blocks a new start;
+a failed attempt is not labelled as running.
+- **Stalled** means red-teaming's store says the run is under way while the platform has no process running it. **Resume** relaunches it.
+
+Retrying creates a separate run, linked to the one it retries.
+
+Results arrive whether or not the completion callback does: red-teaming's storage is permanent and append-only, so Studio reads the result by polling if the callback is lost.
+
+With `ENTERPRISE=true`, the persistent Studio server starts reconciliation at startup and repeats
+60 seconds after each pass finishes. It checks unfinished runs and completed runs whose results
+are still unreadable, without requiring an open browser. This loop reads existing runs only: it
+does not start or resume evaluations. Run Studio as an always-on service for this recovery path.
+
+### Reconciliation across replicas
+
+All Mongo-backed Studio replicas share a **per-run ingestion lease** in the database. Browser
+polling, the background reconciler and completion callbacks use the same lease before reading
+the service or artifacts. A busy worker skips that run without marking it failed; other runs
+can still be processed independently.
+
+The lease expires after five minutes and renews every minute while ingestion is active. After
+a worker crash or expired lease, another replica can take over. Ingestion writes check the
+owner and lease version; an old worker cannot overwrite a newer projection or release its
+replacement's lease. No leader replica or deployment setting is required. Keep replica clocks
+synchronized. NeDB storage remains supported only in a single Studio process.
+
+If MinIO is temporarily unavailable, coverage already fetched remains visible, but ingestion stays
+incomplete and the profile is retried. A missing measurement is never converted to zero. A webhook
+retry is acknowledged as a duplicate only after the completed result is available.
+
+### Completion callback protection
+
+Studio limits the callback to **60 requests per IP** and **10 per run** in each one-minute
+window. Those counters use Studio's database, not a per-request memory cache. Mongo deployments
+share them across replicas; NeDB remains a single-process deployment. A callback also reserves
+its webhook slot for up to five minutes and starts a **30-second cooldown after processing**,
+including failed ingestion. Expired claims recover after a worker crash. A blocked request returns
+`429` with `Retry-After` instead of acknowledging an unprocessed result. The reconciler still
+recovers results when the sender exhausts its retries.
+
+When polling or another reconciler already owns the shared ingestion lease, the callback also
+returns `429` with `Retry-After`. It does not mark the receipt processed until ingestion finishes.
+
+Put this route behind a trusted edge proxy that overwrites **`X-Real-IP`**, the default IP header.
+For a different proxy-owned single-IP header, set `RED_TEAMING_WEBHOOK_IP_HEADER`. Do not trust a
+client-controlled forwarding header or expose the application port around that proxy. Missing or
+invalid IP headers share one limited bucket. Studio hashes the IP for the counter key and expires
+request-counter records; it does not store request bodies in them. Apply edge request limits too:
+this application limit protects ingestion, not the proxy or database from all denial of service.
+
+Optional **`RED_TEAMING_WEBHOOK_SECRET`** prepares Studio for a future signed sender. Leave it
+empty with today's unsigned red-teaming callbacks. When configured, Studio requires:
+
+- `X-Red-Teaming-Timestamp`: Unix seconds, within five minutes of Studio's clock.
+- `X-Red-Teaming-Signature`: `sha256=` followed by the lowercase hex HMAC-SHA256 of
+  `<timestamp>.<raw request body>`, using the shared secret and the original UTF-8 bytes.
+
+Missing, invalid, stale or tampered signatures return `401` before any run lookup or result
+read. Coordinate the exact headers and signing format with the sender before enabling the
+secret; this Studio change does not make the current red-teaming service send signatures.
+
+## Interpret results
+
+<Warning>
+A violation rate is one model's estimate of another model's behaviour. red-teaming says the same from its side: the weakness profile is a **control artifact** — the run's own instrument reporting on how it steered itself — and its scores never enter the coverage counts. Read it as evidence to look at, never as a measured error rate.
+</Warning>
+
+Every rate is shown with the number of exchanges that could not be graded. A judge that could not read a verdict records the exchange as ungraded rather than inventing a grade, so a high ungraded count means the measurement is thin, not that the agent behaved well. Where no rate was produced, Studio says *not measured* — never zero.
+
+Lower rates mean the control judge estimated fewer suspected violations, but they are not a pass/fail result. The run detail shows how many exchanges were graded and how many were ungraded. A positive estimate below 0.1% appears as *&lt;0.1%* rather than rounding to zero. Review the recorded conversations before drawing a conclusion, especially when only a few exchanges were graded.
+
+When an evaluation closes and its result is available, the **Progress** card also shows the
+overall estimate as a gauge on a fixed 0–100% scale. It averages the judge's violation scores
+across graded profiling exchanges, weighting principles by their severity. It is not the
+percentage of conversations that failed, nor the percentage flagged for review. The gauge
+does not appear while the evaluation is running or its result is still pending. If a completed
+result has no measurement, the same card says **Not measured** rather than drawing a zero gauge.
+
+**Principle results** shows a bar for each evaluated principle on a fixed 0–100% scale. Studio calculates each value as the arithmetic mean of that principle's stored judge scores across graded profiling exchanges. Controls, exploitation and ungraded exchanges are excluded; severity weights are not applied to these individual bars. These values are separate from the run's overall estimate. Each row shows its graded/ungraded counts, the saved review threshold and a link to the flagged conversations. In Overview, the source catalogue, evaluation date and saved review threshold share one metadata line.
+
+Technical provenance, judge-token log probabilities and strategy coverage are not displayed in the result page. Their original artifacts remain unchanged in storage.
+
+A result separates three things:
+
+- **Measurement:** the control judge's grades and the weakness profile.
+- **Evidence:** the conversations themselves, every turn, verbatim.
+- **Human classification:** your status, owner, comments and audit trail.
+
+There is no model-written interpretation of the evidence, because red-teaming produces none.
+
+A conversation carries what it was aiming at — the plugin, the strategy, the principle, whether the attacker steered it and why it ended — and, on any turn where the channel failed, what failed and what the target asked for. That is the transport audit, recorded where it happened rather than in a separate report.
+
+The attack dataset holds one session per replica with the grades attached. The exploitation report, when the search ran, ranks the categories of interaction that broke the agent reproducibly.
+
+In **Conversations**, select an evaluation by catalogue and date. Each row shows the test name, its question and repetition rather than a technical identifier. Expand it to read the verbatim messages.
+
+Studio limits each conversation's decompressed trace to **16 MiB**. If it exceeds that limit,
+Studio reports the evidence as unavailable with the size-limit reason; it does not truncate the
+transcript or replace it with an empty conversation. The original artifact, run results and
+grades remain unchanged. Retrying the same oversized artifact does not remove this limit.
+
+Exchanges with at least one principle score at or above the flagging score saved for that run (default **0.5**) appear
+first, highlighted as **Flagged by judge**. This is Studio's review threshold, not a new run
+metric or a confirmed human finding. The remaining exchanges are collapsed under
+**Other conversations**; expand that section and select a row to read its verbatim messages.
+Changing the threshold in a new configuration revision does not change the review ordering of older runs. Human classification does not change this ordering or the original grades.
+
+Ungraded exchanges, unavailable grades and technical errors have separate labels, never a
+passing grade. While a run is still executing, its final dataset is not available yet. If the
+grading artifact cannot be read, Studio reports that error but still lets you open transcripts.
+
+## Track improvements
+
+**Overview** summarizes the latest 50 evaluations: completed, cancelled, in progress and stopped,
+plus closed and failed conversations. Failed or stalled runs are not counted as in progress.
+Principle bars combine the latest completed evaluation of each principle across this history.
+Rerunning one principle replaces its previous result without hiding the other principles. Each
+bar identifies its source catalogue and evaluation date. Missing measurements remain unmeasured,
+not zero; stopped evaluations do not replace completed measurements.
+
+**Need attention** counts principles with exchanges above their saved review threshold in these
+latest principle results. Select it to review those flagged conversations, grouped by catalogue
+and evaluation. It does not count stopped runs or confirmed human findings.
+
+**Catalogues evaluated** lists the catalogues with recorded test executions, their versions and
+evaluation counts within the same history. The evolution chart uses run creation dates, not
+result-import dates, and updates while the page is visible.
+
+**Runs** identifies each evaluation by catalogue, date and evaluated principles. Open one to
+inspect its progress, principle results, evidence or recorded failure. Labels use the catalogue
+versions frozen for that evaluation, not today's agent configuration.
+
+Completed evaluations also show their **Overall violation estimate** and the number of
+**Conversations flagged by judge** in the list. The count uses that evaluation's saved review
+threshold and counts each conversation once, even when several principles are flagged. Select
+the count to open those conversations. It is not the percentage above: the percentage averages
+judge scores, while the count identifies conversations to review. These values appear at the
+top right beside the status badge, without adding a result section or increasing the card's
+height. Hover over the result for its interpretation and any ungraded count, or open the run for
+the full measurement. Pending or unreadable summaries never appear as zero.
+
+Compare a run with a previous completed run. Studio shows the differences in coverage, in the profile's rate and in the configuration between them.
+
+When the two runs were frozen against different catalogue versions, strategies, language or replica counts, Studio marks the comparison as non-equivalent and limits the numbers to what the two have in common. A different plan is a different denominator.
+
+Classify a conversation as new, confirmed, false positive, accepted risk or resolved. False-positive and accepted-risk decisions require a comment. Classification never modifies the evidence or its grades, and a redelivered result never overwrites it.
+
+Use **Open system prompt** to act on what you found, then save the agent and start a new evaluation. Recommendations are never applied automatically.

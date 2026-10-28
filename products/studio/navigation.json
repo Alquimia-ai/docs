@@ -28,7 +28,8 @@
             "products/studio/platform/agent-creation/model-selection",
             "products/studio/platform/agent-creation/mcp-tools",
             "products/studio/platform/agent-creation/agent-to-agent",
-            "products/studio/platform/agent-creation/knowledge-base",
+            "products/studio/platform/agent-creation/documents",
+            "products/studio/platform/agent-creation/brains",
             "products/studio/platform/agent-creation/integration-channels",
             "products/studio/platform/agent-creation/pre-processor",
             "products/studio/platform/agent-creation/memory",
@@ -37,15 +38,33 @@
           ]
         },
         {
+          "group": "Tools",
+          "pages": [
+            "products/studio/platform/tools/overview",
+            "products/studio/platform/tools/mcp-servers",
+            "products/studio/platform/tools/client-tools",
+            "products/studio/platform/tools/classifying-tools"
+          ]
+        },
+        {
+          "group": "Knowledge",
+          "pages": [
+            "products/studio/platform/knowledge/overview"
+          ]
+        },
+        {
           "group": "Settings",
           "pages": [
             "products/studio/platform/settings/overview",
             "products/studio/platform/settings/models",
-            "products/studio/platform/settings/mcp-servers",
             "products/studio/platform/settings/sentinels"
           ]
         },
-        "products/studio/platform/discover"
+        "products/studio/platform/security",
+        "products/studio/platform/workspace",
+        "products/studio/platform/discover",
+        "products/studio/platform/versions",
+        "products/studio/guides/agent-evaluations"
       ]
     },
     {
@@ -53,7 +72,8 @@
       "pages": [
         "products/studio/core-concepts/agents",
         "products/studio/core-concepts/workspaces",
-        "products/studio/core-concepts/secrets"
+        "products/studio/core-concepts/secrets",
+        "products/studio/core-concepts/zero-trust"
       ]
     },
     {
@@ -65,7 +85,11 @@
     },
     {
       "group": "Reference",
-      "pages": ["products/studio/reference/roles-and-permissions"]
+      "pages": [
+        "products/studio/reference/roles-and-permissions",
+        "products/studio/reference/agent-capability",
+        "products/studio/reference/compatibility"
+      ]
     }
   ]
 }

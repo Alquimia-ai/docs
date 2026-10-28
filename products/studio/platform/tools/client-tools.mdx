@@ -1,0 +1,109 @@
+---
+title: "Client Tools"
+description: "Register tools your own application executes, so the registry decides what the model is told about them and who may call them."
+---
+
+A **client tool** is a tool the *caller* runs, not the runtime. When the agent decides to call one, the runtime hands the call back to the client that sent the message, as a client tool execution. The client runs it (reads a cart, opens a dialog, charges a card) and returns the result to continue the turn.
+
+Client tools are registered in the workspace's [tool registry](/platform/tools/overview), like an MCP server. The registry holds the definitions the model sees and the rules for who may call each tool. A client can only offer tools that are registered there. It cannot describe new ones in its request.
+
+{/* screenshot: tools-client-tool */}
+
+## Adding a client tool
+
+On the [Tools](/platform/tools/overview) page, click **Add client tool**.
+
+| Field | Description |
+|-------|-------------|
+| **Name** | Display name shown in the registry and the agent editor |
+| **Registered tool id** | What agents reference (`tool_ref`) and callers pass in `client_tools`. Suggested from the name. It cannot change later. |
+| **Description** | Optional. What the tools are for and which client runs them. |
+| **Tool definitions** | A JSON array of tool definitions, in the shape below |
+
+Each definition is a JSON-schema object:
+
+- `title` (or `name`): the tool name the model calls. Required, and unique within the registration.
+- `description`: what the tool does. The model decides when to call a tool from this, so write it well.
+- `properties` and `required`: the tool's parameters, at the root of the object or nested under `parameters`.
+
+```json
+[
+  {
+    "title": "get_cart",
+    "description": "Read the user's cart.",
+    "type": "object",
+    "properties": { "cart_id": { "type": "string" } },
+    "required": ["cart_id"]
+  },
+  {
+    "title": "checkout",
+    "description": "Charge the user's card.",
+    "type": "object",
+    "properties": {}
+  }
+]
+```
+
+Studio checks the definitions as you type, using the same rules as the registry: at least one definition, each with a name, no duplicate names.
+
+## Classifying client tools
+
+A client tool needs a classified operation, just like an MCP tool. A tool name that no rule matches is denied.
+
+**Next: tool access** opens the classification step with one suggested rule per defined tool. Confirm or change each one, then **Create client tool** writes the definitions and the classification together. **Add without classifying** registers the tool with nothing classified, so every call is denied until you classify it from its **Operations** tab. See [Classifying tools](/platform/tools/classifying-tools) for severity, tier grants and approval.
+
+In the registry, a client tool shows a **Client** badge, and its connection reads **Executed by the client**. It has no endpoint or credentials. Its detail panel lists each definition and flags any name nothing classifies.
+
+**Edit definitions** changes the name, description and definitions and keeps the classification and shields. A tool you add or rename there is denied until you classify it.
+
+## Attaching client tools to an agent
+
+In the agent editor, the **MCP Tools** tab has a **Client tools** card. Select the registered client tools the agent may call. Studio saves each one as a reference and nothing else:
+
+```json
+{ "provider_id": "client", "tool_ref": "shop-ui" }
+```
+
+With Zero Trust on, the agent's tier ceiling is added as `tier_ceiling`. Client tools count toward the agent's derived capability tier, the same way MCP tools do. If a referenced registration is deleted, the card lists the stale reference so you can remove it. The runtime denies every call through it in the meantime.
+
+## Testing client tools in Try me
+
+When the agent calls a client tool in **Try me**, the turn pauses and a card appears above the message box. It shows the tool name, its description and the arguments the model passed. You answer the way your application would:
+
+| Option | What the agent receives |
+|--------|-------------------------|
+| **Success** | The result you type. Valid JSON is sent as a JSON value, and anything else as text. |
+| **Error** | A failed call with the message you type. The agent sees the error and can try something else. |
+
+Press **Send result** (or Cmd/Ctrl+Enter) and the turn continues with your answer. This way you can test the whole conversation, including how the agent handles a failed call, before your application implements the tool.
+
+If the call needs approval, the approval card appears first. The tool card only appears after the call is approved.
+
+## Offering client tools per request
+
+A client that talks to the runtime directly can also offer registered client tools for a single turn. It passes their registered ids in the inference request's `client_tools` field:
+
+```json
+{
+  "query": "What's in my cart?",
+  "session_id": "…",
+  "client_tools": ["shop-ui"]
+}
+```
+
+Each id must name a client tool registered in the agent's workspace, or the request is refused with `403`. Tools the agent already references are not added twice. To find the ids a frontend can offer, list the registry with `GET /tools?provider_id=client`.
+
+<Warning>
+  The runtime no longer accepts tool definitions sent inline in a request (`evaluation_strategy.tool_schemas`). Such a request is refused with `400`. Register the tools as client tools and pass their ids in `client_tools`.
+</Warning>
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Tools" icon="wrench" href="/platform/tools/overview">
+    The workspace's curated tool registry.
+  </Card>
+  <Card title="Classifying tools" icon="list-checks" href="/platform/tools/classifying-tools">
+    Severity, tier grants, patterns and approval.
+  </Card>
+</Columns>
