@@ -1,0 +1,181 @@
+---
+title: "Versions and Compatibility"
+description: "How Studio is versioned, how to tell which version is running, and which runtime and core versions it is known to work with."
+---
+
+Studio follows [semantic versioning](https://semver.org): `MAJOR.MINOR.PATCH`. The number in
+`package.json` is the single source of truth, and every release carries a matching `v<version>`
+Git tag, GitHub Release and container image tag.
+
+Studio is a deployed application, not a library, so the parts mean:
+
+| Part | Changes when |
+|---|---|
+| **Major** | An upgrade needs a manual step — a migration, a new required environment variable, or a runtime version you do not have yet |
+| **Minor** | Something new works, and upgrading needs nothing from you |
+| **Patch** | Something that was broken now works |
+
+Releases before `0.2.0` carry no number: they were tagged `release-YYYY-MM-DD`. Those tags stay
+in the history and are not reissued.
+
+## Which version is running
+
+```bash
+curl https://<your-studio>/api/health
+```
+
+```json
+{
+  "status": "ok",
+  "version": "0.2.0",
+  "commit": "ad8bff1",
+  "checks": { "registry": "ok", "db": "ok" }
+}
+```
+
+The endpoint needs no session, on purpose — it is reachable from a load balancer or an
+orchestrator's readiness probe.
+
+| Field | Meaning |
+|---|---|
+| `status` | `ok` while every check passes, `error` otherwise. The response is `200` or `503` to match, so the endpoint can back a readiness probe directly |
+| `version` | Baked into the image at build time from `package.json` |
+| `commit` | The commit the image was built from, or `unknown` when the build was not told |
+| `checks.registry` | The runtime answered its liveness probe |
+| `checks.db` | Studio's own store answered — a MongoDB ping, or opening the NeDB datastore, depending on `DB_STRATEGY` |
+
+<Note>
+  A `503` here means Studio cannot work, not that it is absent. The process is running and the
+  body says which dependency is down.
+</Note>
+
+## Container image tags
+
+| Tag | Points at | Use it when |
+|---|---|---|
+| `0.2.0` | One specific release, never reassigned | You want a reproducible deployment or a rollback target |
+| `stable` | The most recent production release | You want production to follow releases automatically |
+| `stable-20260924-1432` | One production build | You are chasing a specific build |
+| `latest` | The most recent staging build | You are tracking `develop` |
+
+Staging images carry no semantic version. Several staging builds share the same number between
+releases, so a `0.2.0` tag there would move, and a moving version tag is worse than none.
+
+## Compatibility with runtime and core
+
+Studio talks to the [Alquimia runtime](/reference/ecosystem-services), which in turn embeds
+`alquimia-core`. The combinations below are the ones each Studio release was developed and
+tested against.
+
+| Studio | Runtime | Core | Notes |
+|---|---|---|---|
+| `0.2.x` | `0.5.1`–`0.5.3` | `0.5.1`–`0.5.4` | Brains and the registry index need runtime `0.5.2` or later. Twilio voice channels need runtime `0.5.1` or later |
+| Next minor | `0.7.0` | `0.7.1` | Needs runtime `0.7.0`. See [What needs runtime 0.7.0](#what-needs-runtime-0-7-0). Settings live in the runtime registry; see [Settings in the runtime](#settings-in-the-runtime). See also [Publishing to Alquimia Hub](#publishing-to-alquimia-hub) |
+
+### What needs runtime 0.7.0
+
+The next Studio release calls endpoints that runtime `0.7.0` (core `0.7.1`) introduced, and it
+has no fallback for older runtimes:
+
+- **Secrets:** each agent's secret check (`POST /registry/secret/requirements/{assistant_id}`)
+  and defining a secret without a value (`PUT /registry/secret/definition`). On an older runtime
+  the Secrets page cannot check agents, and a new Agent or User scoped secret cannot be saved.
+- **Publishing to Alquimia Hub:** `PUT /registry/promote`.
+- **Activity:** conversations (`/worklog/sessions`), the activity strip (`/worklog/activity`)
+  and the run filter for runs still in progress.
+- **Metrics:** `/telemetry/*`. The runtime needs `METRICS_QUERY_URL` pointing at its Prometheus,
+  Thanos, Mimir or VictoriaMetrics endpoint. Without it, metrics answer 503.
+- **Browser voice calls:** the single-use ticket from `POST /streaming/auth-ticket`. Leave
+  `STREAMING_ALLOW_QUERY_TOKEN` off on the runtime.
+- **Knowledge:** file access policies, topic shields, and knowledge bases that name a topic
+  without a connector. Core `0.6.x` rejects the `max_chunk_length`, `max_file_read_length` and
+  `max_file_list_limit` read caps.
+
+Two behaviours are new in `0.7.0`:
+
+- **Agents that no longer validate are skipped instead of failing the whole list.** The
+  dashboard says how many were skipped and names them. Re-save them from their spec, or delete
+  them.
+- **The runtime ignores `X-Forwarded-For`** unless the peer is in `TRUSTED_PROXY_CIDRS`. Behind
+  an ingress, set it. Otherwise every browser voice call shares one source address, and the
+  runtime's per-source call limit trips.
+
+### Settings in the runtime
+
+Models, MCP servers, sentinels and voice providers are stored in the runtime registry, not in
+Studio's database. That needs, at least:
+
+- **Core** with `name` and `vendor` on model registrations, `name` on tool, shield and audio
+  provider registrations, and `audio_ref` on Triton connectors (alquimia-core #297, #298,
+  #299, #305). That release also gives Anthropic, Google and Ollama their own connectors and
+  requires each vendor to use its own; Studio registers them that way, and **Move to runtime**
+  moves models saved against the old OpenAI-compatible endpoints accordingly.
+- **Runtime** with the `/registry/shield` and `/registry/audio-provider` routes
+  (alquimia-runtime #337).
+
+Both shipped in runtime `0.6.0` with core `0.6.1`.
+
+Against an older runtime, Settings shows **Could not reach the runtime registry** on the
+Sentinels and Voice tabs, and agents with a sentinel or a voice cannot be saved.
+
+Upgrading from `0.2.x` is a manual step: open **Settings** in each workspace and click **Move
+to runtime**. See [Moving settings to the runtime](/platform/settings/overview#moving-settings-to-the-runtime).
+
+### Publishing to Alquimia Hub
+
+Studio puts a version on the Hub with `PUT /registry/promote?tag=&target=` (runtime
+Alquimia-ai/alquimia-runtime#354), which copies an existing internal version to a
+host-qualified repository such as `registry.alquimia.ai/agents/<name>`, with the same digest,
+signature and notes. It answers whether the copy and its Hub index entry are signed, and Studio
+reports anything less as a failure. It never replaces a Hub tag (409), so the Hub has no
+`latest`. Hub versions are removed with `PUT /registry/unpublish?target=` and read with
+`explore/tags` on the host-qualified repository.
+
+Requires runtime `0.7.0`, which ships Alquimia-ai/alquimia-runtime#353 (secrets used through
+registrations count as used) and #354 (promote, `PublishResponse`, guards on external targets).
+Older runtimes have no promote endpoint, and publishing to Alquimia Hub fails there.
+
+The deployment needs:
+
+| Where | Setting | Value |
+|---|---|---|
+| Studio | `EXTERNAL_REGISTRY_URL` | The Hub host, no scheme (`registry.alquimia.ai`) |
+| Studio | `EXTERNAL_REGISTRY_AGENTS_PROJECT` | The runtime's `ALQUIMIA_OCI_NAMESPACE_AGENTSPACES` (`agents`). Otherwise the publish would never be indexed, and Studio blocks it |
+| Studio | `NEXT_PUBLIC_EXTERNAL_PUBLISH` | `on`, only where Hub publishing is allowed. Platform administrators only |
+| Runtime | `ALQUIMIA_OCI_EXTERNAL_TARGETS` | `registry.alquimia.ai`. Publish, promote and unpublish toward any other host are refused (403) |
+| Runtime | Platform-admin principal | The runtime refuses external targets to anyone else (403). Under `RUNTIME_USER_IDENTITY=passthrough` that is the signed-in user's token, so the role must be on their identity; with the shared key, on `ALQUIMIA_ASSISTANT_API_KEY`'s token |
+| Runtime | `ALQUIMIA_OCI_INDEX_ENABLED` | `true`. Without it the Hub index entry is never written, and Studio reports the publish as failed |
+| Runtime | `ALQUIMIA_OCI_COSIGN_KEY` + `COSIGN_PASSWORD` | The signing key, where Hub publishing is allowed. Unsigned versions are hidden elsewhere |
+| Runtime | Registry credentials (`DOCKER_CONFIG`) | Push access to the Hub, only where Hub publishing is allowed |
+
+The Hub registry must support OCI 1.1 referrers for its index.
+
+### Known limitations with runtime 0.5.2 and 0.5.3
+
+| Symptom | Cause | Workaround |
+|---|---|---|
+| **Try Me** pinned to a version fails with "could not load version" | The runtime looks up `?version_tag=` by workspace name, but Studio sends the workspace ID | Test against **Workspace (live)**. Other clients can pass the workspace name |
+| An agent saved by an older Studio fails as soon as it answers, naming an invalid connector parameter | Core `0.5.4` rejects model parameters the provider does not define | Open the agent and save it again. Studio now sends those parameters under `model_kwargs` (see [model parameters](/platform/agent-creation/model-selection#parameters-the-provider-does-not-define)) |
+| Replacing a version published by someone else fails with a generic server error | The runtime `0.5.3` overwrite guard answers 500 instead of 409 | A platform admin can replace it |
+| A Twilio call to an agent outside the default workspace hangs up right away | The runtime's `/twiml` endpoint does not pass `agentspace_id` on to the audio stream | Upgrade to runtime `0.6.0`, which carries the workspace to the stream and checks Twilio's signature instead of a token. The channel form's webhook URL targets `0.6.0` and does not work on earlier runtimes |
+| Discover or Brains list nothing | The index is off and the registry restricts its catalog to admins (Harbor) | Set `ALQUIMIA_OCI_INDEX_ENABLED=true` on the runtime, then create the index anchor and reindex on the runtime (`PUT /registry/index/ensure`, `PUT /registry/index/reindex`) |
+
+With a Keycloak deployment, runtime `0.5.2` also changed who it accepts:
+
+- The runtime accepts only tokens whose audience includes `alquimia-runtime`. It no longer
+  accepts `account`. Every client that calls the runtime needs an audience mapper that emits
+  `alquimia-runtime`, and that includes the client Studio signs users in with. Studio requests
+  this audience in `RUNTIME_TOKEN_AUDIENCE`, which defaults to `alquimia-runtime`.
+- The runtime no longer treats `admin` as a role. Assign `platform-admin` or `org-admin`
+  instead.
+
+<Warning>
+  Studio cannot verify this for you. The runtime does not report its own version: `/health/liveness`
+  and `/health/readiness` answer with a bare `OK`, so Studio's `checks.registry` tells you the
+  runtime is *reachable*, not that it is a version this Studio understands. Check the deployed
+  runtime image tag by hand when you upgrade either side.
+</Warning>
+
+Running a runtime older than the row says usually shows up as a feature that silently does
+nothing rather than as an error — an agent configuration Studio can write and the runtime
+ignores.

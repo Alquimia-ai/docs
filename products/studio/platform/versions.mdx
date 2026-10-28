@@ -1,0 +1,215 @@
+---
+title: "Workspace Versions"
+description: "Publish a workspace as an immutable, versioned release, and run agents against it."
+---
+
+A workspace is live: every edit you make applies immediately, to everyone using it. A
+**version** is the opposite — an immutable copy of the whole workspace at one moment, that
+nothing can alter afterwards.
+
+Publishing one lets you keep a configuration you know works, keep editing without fear, and
+run an agent against either.
+
+<Note>
+  By default a version covers the **whole workspace**, not one agent. Every agent in it, with
+  its model, parameters and secret *references*, is snapshotted together, along with each
+  secret's *definition*: its key, description, type and whether it is required. Secret
+  **values** never travel — whoever uses the version supplies their own. You can narrow a
+  version to some of the agents; see [Choosing the agents](#choosing-the-agents).
+</Note>
+
+## Publishing a version
+
+From the Dashboard, click **Publish**. You need workspace administrator access, at least one
+model, and at least one agent — there has to be something to publish.
+
+Publish opens a wizard. Platform administrators in a deployment that enables Alquimia Hub
+(`NEXT_PUBLIC_EXTERNAL_PUBLISH=on`) first choose where the version goes: **This workspace** or
+**Alquimia Hub** (see [Publishing to Alquimia Hub](#publishing-a-version-to-alquimia-hub)).
+Everyone else goes straight to the form described here.
+
+Studio checks the workspace first and shows what it finds:
+
+- **An agent that needs fixing blocks publishing.** A snapshot is immutable, so an agent
+  that cannot find its model would be preserved in that state, and the failure would surface
+  later to whoever runs it.
+- **Unused keys** (secrets nothing uses) are listed as a warning.
+- **A check that could not run** says so. That is not the same as a clean report, and Studio
+  does not present it as one.
+
+If the push succeeds but the runtime cannot record the version in the registry index, the
+success screen says it may take a while to show up in Discover. The version still exists and
+can be pinned, but Discover does not list it until the registry index is repaired on the
+runtime (`PUT /registry/index/reindex`).
+
+### Choosing a version number
+
+Use semantic versioning — `1.2.0`. Studio suggests the next patch after whatever is already
+published, and shows which versions exist. Prereleases such as `1.3.0-rc.1` or `1.3.0-dev.2`
+are fine for versions you only use inside your deployment; they cannot go to Alquimia Hub.
+
+A moving tag such as `latest` is not a version and cannot be published as one.
+
+### Choosing the agents
+
+**Agents in this version** decides which agents the version carries:
+
+- **All agents** (the default) — the whole workspace.
+- **Only the agents I pick** — just the ones you tick.
+- **All agents except the ones I pick** — everything but the ones you tick.
+
+This is the same as `alquimia registry publish --include-agents` / `--exclude-agents` (the
+runtime's `include_agents` / `exclude_agents` on `PUT /registry/publish`). Only what the kept
+agents use travels with them: tools, models, knowledge topics and files, brains, shields,
+audio providers, parameters and secret definitions that only a left-out agent uses stay
+behind.
+
+When the version leaves agents out:
+
+- An agent that needs fixing blocks publishing only if it is in the version.
+- The unused-keys check does not apply: leaving agents (and their keys) behind is the point.
+- Studio refuses an empty pick, an agent that is no longer in the workspace, and a version
+  that would leave every agent out.
+- If you also move `latest`, it moves to the same set of agents.
+
+### Where it goes
+
+**This workspace** stores the version in your deployment's own registry. Anyone in your
+deployment, in any organization, can pull it, and it is the version you pin in Try Me and at
+inference.
+
+To share a version with everyone, choose **Alquimia Hub** in the Publish wizard. The Hub gets
+a copy of a version that exists in your deployment, under the same number and with the same
+notes.
+
+### Notes the Hub needs
+
+A description, the requirements (what whoever installs it must provide, such as API keys) and
+at least one tag are optional for a version you only use in your deployment. Alquimia Hub
+requires all three, and it shows the version's notes exactly as they were published: they
+cannot be added or changed on the way to the Hub. For platform administrators, the workspace
+form reminds you to add them when they are missing. The requirements are stored under a
+`## Prerequisites` heading in the version's description.
+
+### Replacing a version
+
+If the version already exists, Studio stops and asks. Replacing it changes what anyone pinned
+to that version is running — publishing under a new number leaves them alone.
+
+### Making it the default version (`latest`)
+
+**Make this the default version** is off by default. It moves `latest`, a pointer rather than a
+version: moving it changes what everyone following it is running, the moment you publish.
+Anyone who pinned an actual version is unaffected.
+
+If the version publishes but `latest` cannot be moved, the success screen says the version was
+saved but could not be made the default.
+
+## Seeing what is published
+
+**Versions** in the Dashboard header lists what is actually in your deployment's registry,
+with its author and date. Each one can be copied as a full reference, like
+`alquimia/customer-support:1.2.0`.
+
+When the deployment can publish to Alquimia Hub, a version that is on the Hub shows an **On
+Alquimia Hub** badge with the date it got there. The Hub copy has the same version number as
+the version it came from. Publishing to the Hub starts from **Publish**, not from Versions.
+
+<Note>
+  This reads the registry itself, not the runtime's local cache. A version published a moment
+  ago appears here straight away.
+</Note>
+
+### Removing a version
+
+Platform administrators can remove a published version. There is no undo: the artifact is
+deleted, and anything pinned to that version stops resolving. Removing a version from your
+deployment does not remove it from Alquimia Hub.
+
+## Publishing a version to Alquimia Hub
+
+Alquimia Hub is where workspaces are shared with every deployment. It only takes a version
+that exists in your deployment, under the same number, so whatever is on the Hub is something
+you have versioned.
+
+Publishing to the Hub is limited to platform administrators, and only offered when the
+deployment enables it (`NEXT_PUBLIC_EXTERNAL_PUBLISH=on`). Click **Publish** in the Dashboard
+and choose **Alquimia Hub**. The wizard has three steps and a result:
+
+1. **Version.** Either **Publish the current workspace as a new version**, or pick an existing
+   version. Versions that cannot go are listed, disabled, with the reason:
+   - a test version (prerelease, such as `1.3.0-rc.1`): the Hub only takes stable versions;
+   - already on the Hub: Hub versions are never replaced, publish the next version instead;
+   - missing a description, requirements or tags;
+   - not verified (not signed in your deployment, whose signature the Hub copy would carry).
+2. **Details.** For a new version, the version form, with description, requirements and tags
+   required and a version number that does not exist yet (in your deployment or on the Hub).
+   A new version also offers [Agents in this version](#choosing-the-agents). For an existing
+   version, its notes, read-only: the Hub shows them exactly as they were published, with the
+   agents it was published with.
+3. **Review.** The keys whoever installs it will need to provide (secret definitions, shown by
+   name, such as "Groq API key", with their descriptions; values are never published), and one
+   consent checkbox. For a new version that leaves agents out, the review names the agents it
+   carries and lists every key in the workspace, noting that only the keys those agents use
+   go with it. If something blocks the publish (the Hub is not configured, its project
+   does not match the namespace the runtime indexes, the version is not verified), the review
+   says so in plain words and the technical reason goes to Studio's server logs.
+4. **Result.** **Published to Alquimia Hub**, or a plain-language failure.
+
+For a new version, Studio first creates it in your deployment, exactly as **This workspace**
+would, and only then copies it to the Hub (`PUT /registry/promote`). If the Hub step fails, the
+result says the version was saved in your deployment, and **Try again** reopens the wizard on
+that version.
+
+Any internal version can go, whatever has changed in the workspace since: the runtime copies
+the version itself, with the same digest and signature, not the workspace as it is now.
+
+The Hub has no `latest`. Whoever installs from it picks a version, and keeps it until they
+choose another. Your deployment's own `latest` is unaffected.
+
+A version that is not signed, or that the Hub's index does not list, is invisible to every
+other deployment, so Studio reports it as a failure ("We couldn't confirm it's available on
+the Hub"). The version number is then taken on the Hub: fix the cause (usually the runtime's
+signing key or index settings, logged by Studio), remove it from the Hub, and publish the next
+version.
+
+Configuration problems read the same in the UI ("Publishing to Alquimia Hub isn't set up for
+this workspace. Contact your admin.") and are detailed in the server logs. The usual causes:
+the Hub is missing from the runtime's `ALQUIMIA_OCI_EXTERNAL_TARGETS`, the identity the runtime
+sees is not a platform administrator (with `RUNTIME_USER_IDENTITY=passthrough`, that is your
+own sign-in), `EXTERNAL_REGISTRY_URL` is not set, or `EXTERNAL_REGISTRY_AGENTS_PROJECT` does
+not match the runtime's `ALQUIMIA_OCI_NAMESPACE_AGENTSPACES`.
+
+### Removing a version from Alquimia Hub
+
+Platform administrators can click **Remove from Hub** next to the **On Alquimia Hub** badge in
+**Versions**. The version disappears from Discover for every deployment. Workspaces already
+cloned or installed from it keep working, and the version in your deployment stays.
+
+## Running an agent against a version
+
+Open an agent's **Try Me** drawer. When the workspace has published versions, a selector
+appears in the header:
+
+- **Workspace (live)** — the current, editable configuration. The default.
+- **A version** — the immutable release, exactly as published.
+
+This is how you tell whether a change you just made is what altered a reply, and how you check
+a version still behaves before telling anyone to pin it.
+
+Outside Studio, pin a version by passing `version_tag` at inference.
+
+<Warning>
+  On runtimes up to 0.5.3, **Try Me** cannot run a pinned version. The runtime looks the workspace up by name, but Studio identifies it by ID, so the turn fails. The drawer tells you when this happens. Switch back to **Workspace (live)** to keep testing.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Discover" icon="compass" href="/platform/discover">
+    Browse and install workspaces published by others.
+  </Card>
+  <Card title="Roles & Permissions" icon="shield" href="/platform/reference/roles-and-permissions">
+    Who can publish, and who can remove a published version.
+  </Card>
+</CardGroup>

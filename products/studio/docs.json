@@ -36,7 +36,8 @@
               "platform/agent-creation/model-selection",
               "platform/agent-creation/mcp-tools",
               "platform/agent-creation/agent-to-agent",
-              "platform/agent-creation/knowledge-base",
+              "platform/agent-creation/documents",
+              "platform/agent-creation/brains",
               "platform/agent-creation/integration-channels",
               "platform/agent-creation/pre-processor",
               "platform/agent-creation/memory",
@@ -45,14 +46,29 @@
             ]
           },
           {
+            "group": "Tools",
+            "pages": [
+              "platform/tools/overview",
+              "platform/tools/mcp-servers",
+              "platform/tools/classifying-tools"
+            ]
+          },
+          {
+            "group": "Knowledge",
+            "pages": [
+              "platform/knowledge/overview"
+            ]
+          },
+          {
             "group": "Settings",
             "pages": [
               "platform/settings/overview",
               "platform/settings/models",
-              "platform/settings/mcp-servers",
               "platform/settings/sentinels"
             ]
           },
+          "platform/workspace",
+          "platform/security",
           "platform/discover"
         ]
       },
@@ -61,7 +77,8 @@
         "pages": [
           "core-concepts/agents",
           "core-concepts/workspaces",
-          "core-concepts/secrets"
+          "core-concepts/secrets",
+          "core-concepts/zero-trust"
         ]
       },
       {
@@ -74,7 +91,9 @@
       {
         "group": "Reference",
         "pages": [
-          "reference/roles-and-permissions"
+          "reference/roles-and-permissions",
+          "reference/agent-capability",
+          "reference/compatibility"
         ]
       }
     ]

@@ -11,47 +11,76 @@ The Pre-processor runs before the main agent sees a user message. Use it to enfo
 
 Sentinels are mini-agents that evaluate the incoming message using an LLM. They can block, tag, or transform the request based on their classification.
 
-Select one or more Sentinels from those configured in [Settings → Sentinels](/platform/settings/sentinels).
+Select one or more Sentinels from those registered under [Shields](/platform/settings/sentinels).
 
-**Execution order**: Sentinels run sequentially in the order they're listed. If a sentinel **blocks** a request, subsequent sentinels and the main agent are skipped. The blocking sentinel's configured response is returned to the user.
+Every selected sentinel evaluates the message, and each one's verdict is published under its own name for empathy rules to read.
 
 Common sentinel use cases:
-- Block off-topic or harmful inputs before they reach the agent
+- Flag off-topic or harmful inputs before the agent answers
 - Classify intent and tag the request for downstream logic
 - Detect language and route accordingly
 
+### Per-agent policy
+
+Under each selected shield, set what **this agent** does with its verdict. Another agent can run
+the same shield with a different policy.
+
+| Field | Effect |
+|-------|--------|
+| **Action** | **Observe** logs the verdict (default). **Flag** raises an alert and lets the message through. **Block** refuses the message before it reaches the agent. **End call** hangs up a live voice call. |
+| **Threshold** | The score at or above which the action fires (0–1). |
+| **Label** | Classifier shields only: only this label's score counts. **Any label** lets any label trigger. |
+| **Fail closed** | Treat a shield error or timeout as a block instead of letting the message through. |
+| **Refusal message** | Block and End call only: replaces the default refusal text. |
+
+<Note>
+  With **Observe**, a shield records its verdict but does not refuse the request. Either set
+  **Block**, or pair it with an empathy rule that overrides the answer.
+</Note>
+
 ## Empathy Rules
 
-Empathy Rules are condition-based rules that run **without an LLM call** — they're evaluated deterministically based on patterns, keywords, or metadata. Much faster and cheaper than sentinels.
+Empathy Rules decide what to do with a sentinel's verdict. They are expressions evaluated without an LLM call, against the output each sentinel published, so they cost nothing to run.
 
 {/* screenshot: empathy-rules-builder */}
 
 Each rule consists of:
-- **Condition** — what to match (keyword in message, metadata value, user attribute)
-- **Action** — what to do (respond with a fixed message, tag the request, escalate)
+- **Required Sentinels** — one or more of the agent's sentinels. The rule runs only once every one of them has published a verdict.
+- **Conditions** — an expression over the output of the required sentinels, each referenced by its key. Each condition row picks which sentinel it tests. The key is the sentinel's name with every character other than letters, digits and `_` replaced by `_`, because conditions are Python expressions: `Toxicity Guard` and `toxicity-guard` become `Toxicity_Guard` and `toxicity_guard`.
+- **Strategy** — what happens when the conditions match:
+  - **None** — evaluate the conditions but leave the answer alone. Use it to record a match.
+  - **Override** — reply with a fixed message instead of the model's answer.
+  - **Merge** — blend the sentinel's response into the model's. Studio has no editor for the merge payload yet.
 
-Example rules:
-- IF message contains "cancel my account" → respond with "Please contact our retention team at..."
-- IF message contains profanity → block with "Please keep the conversation respectful"
-- IF user_language = "es" → tag as `spanish` and forward
+Rules are evaluated top to bottom and **the first match wins** — later rules are skipped. Order the specific ones above the general ones.
+
+<Warning>
+  An Override rule needs its message filled in, and Merge has no response Studio can author
+  yet. A rule missing its response is dropped when you save the agent, because the runtime
+  rejects the whole agent otherwise.
+</Warning>
 
 <Tip>
-  Use **Empathy Rules** for simple, predictable patterns you can express as exact conditions — greetings, out-of-scope topics, keyword triggers. Use **Sentinels** for nuanced classification that requires understanding context and intent.
+  Have the sentinel return a small structured verdict — a boolean or a short label — rather
+  than prose. Conditions are exact comparisons, so `is_toxic == True` is dependable in a way
+  that matching against a sentence is not. Set the shape under **Structured Output** on the
+  sentinel.
 </Tip>
 
 ## Combining sentinels and empathy rules
 
-Both can be active simultaneously. The execution order is:
-1. Empathy Rules (instant, no LLM)
-2. Sentinels (LLM-powered, sequential)
-3. Main agent
+The two work as one pipeline rather than independently:
 
-This ordering minimizes cost — deterministic rules catch the easy cases before any LLM is invoked.
+1. **Sentinels** run and publish a verdict under each sentinel's name.
+2. **Empathy Rules** read those verdicts and decide whether to replace the answer.
+3. **Main agent** answers, unless a rule overrode it.
+
+So empathy rules are how a sentinel's verdict reaches the user. A sentinel with no rule reading it still runs, and its verdict is recorded for observability, but the conversation is unaffected.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Sentinels in Settings" icon="shield" href="/platform/settings/sentinels">
+  <Card title="Shields" icon="shield" href="/platform/settings/sentinels">
     Create and configure sentinels before assigning them here.
   </Card>
   <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">

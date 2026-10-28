@@ -1,0 +1,139 @@
+---
+title: "Knowledge"
+description: "The workspace's knowledge: registered knowledge bases and Brains that agents consume by reference."
+---
+
+**Knowledge** is where a workspace curates what its agents know. Open it from **Knowledge** in the sidebar.
+
+It holds two kinds of entity, both registered in the workspace and neither owned by an agent:
+
+| | Knowledge bases | Brains |
+|---|---|---|
+| **What it is** | Documents your team uploads and maintains | A versioned, signed knowledge artifact published with the Alquimia CLI |
+| **Who maintains it** | You, here | Its publisher; you register a version |
+| **How an agent reads it** | Passage search, or reading its files directly | A search tool over the Brain's memory modules |
+| **Who may read it** | The knowledge base's access policy | The grants on each memory module |
+
+An agent references them from its [Knowledge step](/platform/agent-creation/documents). Several agents can consume the same knowledge base, and one agent can consume several.
+
+{/* screenshot: knowledge-page */}
+
+## Knowledge bases
+
+The **Knowledge bases** tab lists every knowledge base registered in the workspace:
+
+| Column | What it tells you |
+|--------|-------------------|
+| **Knowledge base** | Name, description, tags, and whether it is marked inactive |
+| **Documents** | How many files it holds |
+| **Access** | Which agent levels may search it. **· approval** means each search pauses until a person approves it. **No grants — denied** means every agent's search is refused. |
+| **Used by** | The agents that reference it |
+| **Updated** | When it last changed |
+
+<Warning>
+  If an agent references a knowledge base that is not registered, the page says so at the top and links to the agent. Under [Zero Trust](/core-concepts/zero-trust) the runtime refuses searches on it.
+</Warning>
+
+### Create a knowledge base
+
+1. Click **New knowledge base**.
+2. Give it a name and, optionally, a description and tags. The description tells your team, and agents, what it contains.
+3. Click **Create**. Studio opens it on **Documents** so you can add files.
+
+New knowledge bases are readable by every agent level until you change their access.
+
+<Note>
+  **Active** is a label for your team. The runtime does not stop agents from searching an inactive knowledge base. Use the access policy to restrict who can read it.
+</Note>
+
+### A knowledge base, in detail
+
+Click a row to open it. The panel has six tabs.
+
+#### Details
+
+Edit the name, description, tags and the active label. The panel also shows the registered id agents reference, the underlying collection, the vector store, and when it was created and updated.
+
+**Delete** removes the knowledge base and every document in it. If agents still consume it, Studio names them first; their searches fail until you remove it from them.
+
+#### Documents
+
+- **Upload**: drag files in or click to choose. Markdown, text and PDF are supported. Each file is chunked and indexed as it is added.
+- **Attach a file already in the workspace**: pick a file that was uploaded but is not in any knowledge base.
+- **Remove**: choose **Remove, keep file** to take it out of this knowledge base and keep it in the workspace, or **Remove and delete** to delete it as well.
+
+A file belongs to one knowledge base at a time. Files that are already in another one are listed, but you cannot attach them here.
+
+##### Per-file access
+
+By default every file follows the knowledge base's [access policy](#access). To hide one file from some agents, click **Access** on its row and give it its own policy, with the same settings as the knowledge base's. Files with their own policy show a badge: the agent levels that can still see it (with **· approval** when reading it needs approval), or **Hidden** when none can.
+
+- A file policy can only **narrow** the knowledge base's access, never widen it. An agent sees the file only if both policies allow its level.
+- An agent outside the file's policy never sees the file: not in search results, not when listing the knowledge base's files, and not when reading a file directly.
+- **Require human approval**, or **Changes, permanent**, pauses the conversation before the file's contents reach an agent. This covers reading the file, and any search of its knowledge base, because which files a search will match is only known afterwards. Listing the files does not pause; the list marks the file as needing approval.
+- **Inherit from knowledge base** removes the file's own policy.
+
+Changing a file's access takes editor access or above.
+
+**Chunking** sets how documents you add from now on are split. The defaults are 4,000 characters per chunk with 200 characters of overlap. Documents already indexed keep the chunking they were added with.
+
+#### Access
+
+Sets which [agent levels](/reference/agent-capability) may search the knowledge base. Agents below the levels you grant are refused.
+
+| Setting | Effect |
+|---------|--------|
+| **Reads only** | Grant any of Reader, Editor and Operator |
+| **Changes, reversible** | Only Editor and Operator agents can be granted |
+| **Changes, permanent** | Only Operator agents can be granted, and every search requires approval |
+| **Require human approval** | Every search pauses until a person approves it |
+
+Approval works as it does for [tools](/platform/tools/classifying-tools). When an agent searches or reads the knowledge base, the conversation pauses and someone approves or rejects the request: in **Try me**, or wherever the agent is talking to people. If the request is rejected, the agent is told the knowledge base was not available, so it does not answer as if it had searched. This applies to every way of consuming a knowledge base, including **Always retrieve**, where the pause happens before the agent replies.
+
+To restrict a single document further, set its own policy from the **Documents** tab (see [Per-file access](#per-file-access)).
+
+Agents always reference the knowledge base by its registered id, whether Zero Trust is on or off. When it is off in your deployment, the policy is stored but not checked.
+
+#### Shields
+
+Registered [shields](/platform/settings/sentinels) that screen every passage retrieved from this
+knowledge base before the agent reads it, as tool shields do for tool results. They apply to every
+agent that searches the knowledge base.
+
+For each shield, choose:
+
+- **Action**: **Observe** logs the verdict, **Flag** marks the result and lets it through, **Block** replaces the passages with a refusal.
+- **Threshold**: the score at or above which the action fires.
+- **Label**: classifier shields only. Only this label's score counts.
+- **Withhold the result if the shield cannot run**: fail closed on a shield error. **Block** always fails closed.
+
+**Save shields** replaces the whole set. The runtime refuses a shield that is not registered.
+
+#### Try it
+
+Ask a question and see the passages the knowledge base returns, rendered the way a retrieving agent receives them. Use it after adding documents, or to decide how many results an agent should take.
+
+The search runs with Studio's own access, so the policy is checked against Studio's identity rather than an agent's. The **Agents** tab tells you which agents may search.
+
+#### Agents
+
+The agents that reference the knowledge base, with a link to each one's Knowledge step. Studio flags:
+
+- **Not granted**: the agent's level is not allowed by the access policy, so its searches are refused.
+
+## Brains
+
+The **Brains** tab lists the Brains registered in this workspace. Click one to change its version or memory-module grants, see which agents use it, or deregister it.
+
+To find and register a published Brain, click **Browse published Brains**, which opens [Discover](/platform/discover). See [Brains](/platform/agent-creation/brains) for how agents use them.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Use knowledge in an agent" icon="book-open" href="/platform/agent-creation/documents">
+    Attach knowledge bases to an agent and choose how it searches them.
+  </Card>
+  <Card title="Zero Trust" icon="shield" href="/core-concepts/zero-trust">
+    How access policies decide which agents may search.
+  </Card>
+</CardGroup>

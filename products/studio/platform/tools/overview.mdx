@@ -1,0 +1,118 @@
+---
+title: "Tools"
+description: "The workspace's curated tool registry: what agents may call, what each operation may do, and for whom."
+---
+
+**Tools** is the workspace's curated tool registry. An agent can only use a tool that is registered here, and only the operations a rule here allows, at its own tier. Anything else is refused.
+
+Open it from **Tools** in the sidebar.
+
+{/* screenshot: tools-page */}
+
+## What the page lists
+
+Every tool registered in the workspace's runtime, whoever registered it:
+
+- **MCP servers** added in Studio.
+- **Client tools** added in Studio: tools your own application executes. They have no connection. See [Client tools](/platform/tools/client-tools).
+- **Agents (A2A)** and **Llama Stack** tool groups registered from the CLI or API. Studio shows these and lets you classify them and attach shields. Their connection is managed where they were registered.
+
+| Column | What it tells you |
+|--------|-------------------|
+| **Tool** | Display name, kind, and the registered id agents reference (`tool_ref`) |
+| **Connection** | The endpoint and transport. Credentials appear only as the name of the vault secret holding them, never as a value. A **stdio** connection is flagged (see below). A client tool reads **Executed by the client**, with the number of tools it defines. |
+| **Operations** | How many rules classify the tool, how many are permanent, how many need a human's approval. **Unclassified — all denied** means nothing is classified yet. |
+| **Shields** | How many shields screen the tool's output |
+| **Used by** | How many agents reference it |
+
+The line above the table totals the workspace: tools with nothing classified, permanent operations, and stdio connections.
+
+<Warning>
+  If an agent references a tool that is no longer registered, the page says so at the top. The runtime denies every call through that reference.
+</Warning>
+
+## A tool, in detail
+
+Click a row to open it. The panel has four tabs.
+
+### Overview
+
+- **Connection**: endpoint, transport and every other connection field. Secret references are shown by name, headers by their keys only. For an MCP server, **Edit connection** opens the same form used to add it.
+- **Classification**: a one-line summary, with a shortcut to classify if nothing is.
+- **Used by**: each agent that references the tool, with its role, any tier ceiling on this tool, and what that leaves it able to do. For example: *As Editor: 12 rules allowed, 2 after approval, 3 denied.*
+
+### Operations
+
+The rule list. See [Classifying tools](/platform/tools/classifying-tools). Two rules from the platform frame everything there:
+
+- **First match wins.** The runtime checks rules top to bottom and applies the first that matches the called tool's name.
+- **No match, no access.** A tool name no rule matches is denied. There is no default for the connection as a whole.
+
+For an MCP server, Studio asks the server which tools it exposes so you can classify them by name. For a client tool, the names come from its definitions. Other kinds are classified by name or pattern.
+
+### Effective access
+
+A grid of every rule against the three agent tiers (Reader, Editor, Operator), computed the way the runtime computes it:
+
+| Cell | Meaning |
+|------|---------|
+| **Allowed** | Agents at this tier may call it without asking |
+| **Approval** | Allowed after a person approves the call. Always the case for permanent operations. |
+| **Denied** (lock) | The severity never allows this tier, whatever was granted |
+| **Denied** | The rule does not grant this tier, or the agent's tier ceiling removes it |
+
+Hover a cell for the reason. A rule an earlier rule always beats is dimmed and marked **Never reached**. A grant the severity discards is noted under the rule. The last row, **Any other tool name**, is what happens to everything the rules miss: denied for every tier.
+
+Choose an agent from **As …** to see the grid through its tier ceiling, with its own role highlighted.
+
+<Note>
+  The runtime enforces tier grants when it denies by default (`TOOL_AUTHZ_DEFAULT_DENY`), and approvals whenever tool authorization is on (`TOOL_AUTHZ_ENABLED`). Studio cannot ask the runtime which is set. Whoever installed it mirrors the setting in `NEXT_PUBLIC_TOOL_AUTHZ_ENABLED`, and the page says when enforcement is off.
+</Note>
+
+### Shields
+
+Shields the runtime runs over every result the tool returns, before the agent reads it. Pick a registered [shield](/platform/settings/sentinels), then what happens when it fires (and, for a classifier, which label counts):
+
+| Action | Effect |
+|--------|--------|
+| **Observe** | The verdict is logged. The result goes through. |
+| **Flag** | The result is marked and goes through. |
+| **Block** | The result is replaced with a refusal. |
+
+A **threshold** sets the score at which the action fires. **Withhold the result if the shield cannot run** makes the shield fail closed. Blocking shields always fail closed in the worker.
+
+Shields apply to agents that reach the tool through its registration. An agent saved with Zero Trust off connects inline and bypasses them.
+
+<Note>
+  A tool whose connection holds credentials the runtime masks when Studio reads it, such as some tools registered from the CLI, shows its shields read-only. Studio cannot save it without overwriting those credentials. Change its shields where it was registered.
+</Note>
+
+## stdio connections
+
+An MCP server reached over **stdio** is a command the runtime's worker starts inside its own pod. The runtime refuses it unless an operator has allowed it, with `ALQUIMIA_MCP_STDIO_ALLOWLIST` (specific commands) or `ALQUIMIA_MCP_STDIO_ALLOWED`. Studio flags such connections everywhere they appear. Prefer a remote server over HTTP.
+
+## Who can change tools
+
+Anyone signed in can view the registry. Adding, classifying, attaching shields and deleting need editor access in Studio, and the runtime additionally requires the platform admin role for every change to a tool registration.
+
+A tool an agent still uses cannot be deleted. Remove it from those agents first.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="MCP servers" icon="plug" href="/platform/tools/mcp-servers">
+    Connect an MCP server.
+  </Card>
+  <Card title="Client tools" icon="braces" href="/platform/tools/client-tools">
+    Register tools your application executes.
+  </Card>
+  <Card title="Classifying tools" icon="list-checks" href="/platform/tools/classifying-tools">
+    Severity, tier grants, patterns and approval.
+  </Card>
+  <Card title="Agent capability" icon="shield" href="/reference/agent-capability">
+    How an agent's role and tier ceiling combine with these rules.
+  </Card>
+  <Card title="Zero Trust" icon="lock" href="/core-concepts/zero-trust">
+    Where the tool registry fits in the platform's security model.
+  </Card>
+</Columns>

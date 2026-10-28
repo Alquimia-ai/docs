@@ -7,7 +7,15 @@ Dev Mode is for operators who need full control over **Custom Rules** (custom cl
 
 {/* screenshot: dev-mode-toggle */}
 
-Turn **Dev Mode (advanced)** on with the switch in the **Custom Rules** header. That single flag unlocks advanced clause editing and, farther down the Profile section, the **evaluation strategy** selector and **system prompt** controls that are hidden in standard mode.
+Turn **Dev Mode (advanced)** on with the switch in the **Profile** tab header, top right. It sits at the tab level because it reshapes the whole tab: it unlocks advanced clause editing, reveals the **System Prompt** and **Structured Output** blocks that are hidden in standard mode, and exposes the extra **evaluation strategy** options.
+
+The Profile tab is grouped into three sections, in the order the prompt is built:
+
+| Section | What it holds |
+|---------|---------------|
+| **Identity** | Description and tags — how the agent is presented and catalogued. |
+| **Behavior** | **Custom Rules** (the clauses), then **System Prompt** and **Structured Output** — what those clauses produce. |
+| **Execution** | **Reasoning strategy**, step limits, and **Plan Mode** — how the agent runs a request. |
 
 ## Custom clauses: Dynamic Fields vs Raw JSON
 
@@ -31,6 +39,10 @@ In both modes the clauses object is **fully yours**: nothing is read-only, and f
 With Dev Mode enabled, the **System Prompt** block appears. Turn on **Manage system prompt manually** to write the prompt yourself in the textarea instead of using auto-generated text from the clauses.
 
 You can still insert `{{identity}}`, `{{personality}}`, etc. from the tag helper so the manual prompt **pulls live values** from whatever keys exist in Custom Rules (including custom keys you added in Dynamic Fields or Raw JSON).
+
+<Note>
+  A manual system prompt is **remembered**. When you reopen an agent that was saved with one, Studio turns **Dev Mode** and **Manage system prompt manually** back on automatically and loads your prompt, so saving again keeps it. To hand the prompt back to the runtime, clear the checkbox deliberately.
+</Note>
 
 ## System prompt variables
 
