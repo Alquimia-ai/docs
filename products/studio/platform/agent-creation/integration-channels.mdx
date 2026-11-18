@@ -1,6 +1,6 @@
 ---
 title: "Integration Channels"
-description: "Connect the agent to external communication platforms like WhatsApp and Email."
+description: "Connect the agent to external communication platforms like WhatsApp, Email, phone calls through Twilio, and live calls from a browser."
 ---
 
 Integration Channels let your agent send and receive messages through external platforms — beyond the Studio test interface and direct API calls.
@@ -46,6 +46,90 @@ Connects via **SMTP** for outbound email delivery.
 </body>
 </html>
 ```
+
+## Twilio (voice)
+
+Lets the agent answer **phone calls** through [Twilio Media Streams](https://www.twilio.com/docs/voice/media-streams). Studio saves the channel on the agent. You then point your Twilio number at the runtime.
+
+{/* screenshot: twilio-voice-channel-config */}
+
+<Warning>
+  A phone call needs both speech-to-text and text-to-speech, set in the agent's **Voice** step. Without them the call connects and nobody answers: the runtime skips every turn and only logs a warning.
+</Warning>
+
+| Field | Description |
+|-------|-------------|
+| **Account SID** | Your Twilio Account SID (starts with `AC`). The runtime only accepts calls from this account. Required. Stored as a secret. |
+| **Auth Token** | Your Twilio Auth Token, used to verify Twilio's request signature. Required. Stored as a secret. |
+| **Response template** | *Advanced.* Jinja2 applied to the answer before it is spoken. Defaults to `{{answer}}`. |
+| **WebSocket URI**, **From number**, **To number** | *Advanced.* Only used to test the channel locally with `alquimia-core`. The runtime ignores them. |
+
+### Connect your Twilio number
+
+Once the agent is saved with the channel, the channel form shows the URL to give Twilio:
+
+```text
+https://<runtime-host>/streaming/<agent-id>/<channel-id>/twiml?agentspace_id=<workspace-id>
+```
+
+1. In the Twilio Console, open **Phone Numbers → Manage → Active numbers** and choose your number.
+2. Under **Voice configuration**, set **A call comes in** to **Webhook** (HTTP `POST`), paste the URL exactly as shown, and save.
+3. Call the number.
+
+When a call comes in, Twilio asks the runtime for instructions at that URL. The runtime checks Twilio's signature on the request, then opens a two-way audio stream with Twilio, and each sentence the caller says goes to the agent.
+
+<Note>
+  **No token in the URL.** The runtime checks the `X-Twilio-Signature` Twilio sends with every request against the channel's **Auth Token**, and the call's account against the **Account SID**. A channel missing either is refused (`403`), and so is a call whose signature does not match. Twilio signs the exact URL it calls, so paste it unchanged. If a proxy in front of the runtime rewrites the host or path, your administrator sets the runtime's `STREAMING_CHANNEL_PUBLIC_BASE_URL` to the address Twilio uses.
+</Note>
+
+If Studio shows `<runtime-host>` in the URL, your administrator has not set the runtime's public address (`NEXT_PUBLIC_RUNTIME_PUBLIC_URL`). Replace it with the address Twilio can reach.
+
+### Behaviour and limits
+
+- Each call starts a new conversation. To keep context across calls from the same number, add a `session_id` to the webhook URL (`&session_id=<id>`). Conversations are kept per caller number, so callers do not share one.
+- The runtime limits concurrent calls per source (`STREAMING_CHANNEL_MAX_SESSIONS_PER_SOURCE`, default 10) and call length (`STREAMING_CHANNEL_MAX_SESSION_SECONDS`, default 3600). A call that reaches the limit is hung up.
+- Calls appear in the worklog like any other conversation.
+- Voice channels need runtime `0.6.0` or later. Earlier runtimes expected a runtime token in the URL instead of checking Twilio's signature.
+
+## Browser voice
+
+Lets people **talk to the agent live from a browser**: no phone number, no provider account. The
+channel has nothing to configure; adding it gives the agent an address the runtime accepts calls
+on, and **Try Me** uses it to call the agent.
+
+<Note>
+  Like a phone call, a browser call needs speech-to-text and text-to-speech in the agent's
+  **Voice** step. Without an audio configuration the runtime refuses the call.
+</Note>
+
+### Calling the agent from Try Me
+
+Save the agent with the channel, open **Try Me** and select **Call**. Allow the microphone when
+the browser asks. Then just talk:
+
+- The runtime decides when you have finished a sentence; there is nothing to press.
+- Talk over a reply to interrupt it. The agent stops and listens.
+- **Mute** sends silence, so a sentence in progress ends instead of hanging.
+- **Hang up**, closing the drawer, or switching agents ends the call.
+
+If a turn fails, the call stays open and the panel says why. When the cause is a credential the
+agent cannot read, Try Me hangs up and lists what is missing. Calls always reach the live
+workspace, even when a published version is pinned in Try Me.
+
+<Tip>
+  Use headphones. The browser cancels echo, but with loud speakers the agent can hear itself and
+  stop talking as if you had interrupted.
+</Tip>
+
+### Behaviour and limits
+
+- The browser connects to the runtime directly. Your administrator sets
+  `NEXT_PUBLIC_RUNTIME_PUBLIC_URL` when Studio's own runtime address is one browsers cannot reach;
+  behind HTTPS the call uses `wss://`.
+- The browser never holds a runtime credential: Studio exchanges it for a single-use ticket that
+  expires after 30 seconds by default.
+- The same limits as phone calls apply: concurrent calls per source and the maximum call length.
+- Calls appear in the worklog like any other conversation.
 
 ## Credential handling
 

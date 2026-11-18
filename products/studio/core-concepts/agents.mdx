@@ -16,7 +16,7 @@ An **agent** is a configurable AI assistant. It combines a language model with i
 | **Memory** | Conversation history (short-term) or persistent context (long-term) | No |
 | **Knowledge base** | Document collection for RAG-based answers | No |
 | **Integration channels** | WhatsApp, Email — external communication interfaces | No |
-| **Pre-processor** | Sentinels and empathy rules that run before the agent | No |
+| **Shields** | Input shields (sentinels and empathy rules) that run before the agent, and output shields that screen its responses | No |
 
 ## How agents run
 
@@ -25,7 +25,7 @@ When a user sends a message:
 ```
 User message
     ↓
-Pre-processor (sentinels, empathy rules) — optional
+Shields (input and output shields, empathy rules) — optional
     ↓
 Memory retrieval — inject relevant history
     ↓
