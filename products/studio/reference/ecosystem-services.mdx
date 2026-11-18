@@ -23,8 +23,26 @@ All configuration lives in `.env` in the `alquimia-local` directory.
 | Variable | Description |
 |----------|-------------|
 | `API_TOKEN` | Internal API token shared between services |
-| `AUTH_PROVIDER` | Authentication provider identifier |
+| `AUTH_PROVIDER` | The **runtime's** credential mode (`keycloak` \| `api_token` \| `jwt`). Studio does not read it — see `AUTH_STRATEGY` and `RUNTIME_USER_IDENTITY` below |
 | `ASSISTANT_BASEURL` | Registry API base URL (used by Studio) |
+
+### Studio identity
+
+| Variable | Description |
+|----------|-------------|
+| `AUTH_STRATEGY` | How people sign in to Studio: `keycloak` or `lite` |
+| `RUNTIME_USER_IDENTITY` | Which credential Studio presents to the runtime. Unset means the shared `ALQUIMIA_ASSISTANT_API_KEY`; `passthrough` forwards the signed-in user's own token; `exchange` trades it for a short-lived, runtime-only token (RFC 8693) |
+| `RUNTIME_TOKEN_AUDIENCE` | The client the runtime is addressed as — the `audience` of an exchanged token. Defaults to `alquimia-runtime` |
+| `RUNTIME_EXCHANGE_AGENTSPACE_SCOPE` | Ask the realm to confine each exchanged token to the workspace being operated on. Requires a matching client scope in the realm |
+| `AUTH_KEYCLOAK_SERVICE_ID` / `AUTH_KEYCLOAK_SERVICE_SECRET` | Studio's own realm client, used for calls that have no user behind them. Unset, those calls keep using the shared key |
+
+<Warning>
+  `AUTH_STRATEGY` and `RUNTIME_USER_IDENTITY` are separate on purpose. Signing people in with
+  Keycloak does not by itself change what Studio presents to the runtime, because forwarding a
+  user token needs the runtime to confine audiences and to accept a service credential for
+  Studio's user-less calls. Turning on `passthrough` before both exist breaks every call that
+  has no user session.
+</Warning>
 
 ### Models (cloud & custom endpoints)
 

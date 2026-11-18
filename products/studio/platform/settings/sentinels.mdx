@@ -1,34 +1,110 @@
 ---
-title: "Sentinels"
-description: "Pre-processor agents that intercept and evaluate requests before your main agent runs."
+title: "Shields"
+description: "Registered content-safety checks that screen requests, responses, tool results and retrieved knowledge."
 ---
 
-A **Sentinel** is a mini-agent that runs **before** the main agent processes a user message. It intercepts the input, applies a classification or safety check, and can block, transform, or tag the request.
+A **shield** is a registered check that scores content and reports a verdict. Open **Shields**
+in the sidebar to register one. You register it once, then attach it where it should run:
+
+- to an **agent**, where it screens each user message before the agent answers ([Input shields](/platform/agent-creation/shields#input-shields));
+- to an **agent** as an **output shield**, where it screens each response the agent generates before the user sees it ([Output shields](/platform/agent-creation/shields#output-shields));
+- to a **tool**, where it screens every result the tool returns ([Tools](/platform/tools/overview), **Shields** tab);
+- to a **knowledge base**, where it screens every passage retrieved from it ([Knowledge](/platform/knowledge/overview), **Shields** tab).
+
+The shield holds *how* to score. *What to do* with the score (observe, flag, block, threshold,
+label) is set wherever the shield is attached, so one shield can block in one place and only be
+logged in another.
 
 {/* screenshot: settings-sentinels-list */}
 
-## Use cases
+## Shield types
 
-- **Content moderation** — block harmful or off-topic inputs
-- **Intent classification** — tag the request type for downstream routing
-- **PII detection** — flag or redact personal information
-- **Language detection** — route to a language-specific agent
-- **Topic enforcement** — ensure users stay within the agent's defined scope
+| Type | What it runs | You configure |
+|------|--------------|---------------|
+| **LLM sentinel** | A registered model with its own system prompt and structured verdict. | Model, system prompt, structured output, extra connector parameters. |
+| **Hugging Face text classifier** | A hosted sequence-classification model scoring the whole message. | Endpoint URL, token, input template, label map. |
+| **Hugging Face token classifier** | A hosted NER / token-classification model tagging spans (e.g. PII). | Endpoint URL, token, input template, label map. |
+| **OpenVINO text classifier** | A sequence classifier on an OpenVINO model server. | Endpoint URL, token, tokenizer model, input template, label map. |
+| **OpenVINO token classifier** | A token classifier on an OpenVINO model server. | Endpoint URL, token, tokenizer model, input template, label map. |
+| **Prompt-injection heuristic** | Built-in English keyword patterns; no endpoint. | Heuristic weight and base score (optional). |
+| **System One** | TypeSafe's Jev decision model. Answers typed questions about the text in milliseconds, without generating text. | API key, questions, decision question, optional gateway and request options. |
 
-## Sentinel vs Safeguard Model
+The type is fixed once the shield is registered.
 
-These are two distinct concepts:
+<Warning>
+  The prompt-injection heuristic only catches blatant English phrasing and is easy to
+  paraphrase around. Treat it as a cheap first filter and pair it with a model-backed shield
+  where injection resistance matters.
+</Warning>
 
-| Term | What it is |
-|------|-----------|
-| **Safeguard Model** | The LLM configuration used by the sentinel — its "brain" |
-| **Sentinel** | The complete pre-processor: a safeguard model + system prompt + conditions |
+### Classifier fields
 
-Think of the safeguard model as the engine and the sentinel as the car.
+- **Endpoint URL** — the inference endpoint. Like the token, it is stored in the vault, never
+  in the shield itself.
+- **URL reference** — the vault key that holds the URL. Leave it blank and the URL is stored
+  under a key of its own for this shield (`SHIELD_<ID>_URL`). Set it to share one endpoint
+  between shields, e.g. `SHIELDS_PROVIDER_URL`. When you edit a shield, the URL field is
+  empty: leave it blank to keep the stored URL, or enter a new one to replace it.
+- **Token reference** — the vault key holding the endpoint's bearer token (default
+  `SHIELDS_PROVIDER_API_KEY`). Enter the value next to it; it goes to the vault, never into the
+  shield. Leave the reference blank for an open endpoint.
+- **Label map** — the model's label ids mapped to names, e.g. `LABEL_1` → `toxic`. Policies
+  target a label by its name.
 
-## Adding a sentinel
+### System One
 
-Click **Add Sentinel**:
+System One answers typed questions about the screened text with calibrated probabilities. One
+question, the **decision question**, becomes the verdict each agent enforces:
+
+| Question type | Label | Score |
+|---------------|-------|-------|
+| **Yes / no** | `true` or `false` | Probability of yes |
+| **Choice** | The chosen option's name | That option's probability |
+| **Score** | The nearest level's number, from `0` | The expected level, scaled to 0–1 |
+
+Set a policy's **Label** to act on one outcome only, for example `true` on a yes/no question, or
+`complex` on a choice. The picker lists the labels the decision question can produce.
+
+- **API key** — the vault key holding the System One key (default `TYPESAFE_API_KEY`). Enter
+  the value next to it; it goes to the vault, never into the shield.
+- **Questions** — each has a unique name, a type and instructions. Studio refuses two questions
+  with the same name, because the second would silently replace the first. A yes/no question can say what
+  counts as yes and no. A choice lists its options (up to 255), and a score lists its levels
+  from lowest to highest (up to 10). Text that is a JSON object or array is sent as structured
+  instructions.
+- **Decision question** — required when there is more than one question. Every answer is kept on
+  the verdict under `answers`, so empathy rules can route on the others, for example
+  `router["answers"]["tier"]["choice"] == "complex"`.
+- **Endpoint and request options** — a compatible gateway's **Base URL** and **Model** (default
+  `https://api.typesafe.ai` and `jev-latest`; pin a version such as `jev-1.14.0` when thresholds
+  were tuned against it), **Timeout**, **Max retries**, a Jinja **State template**, **Include
+  recent conversation**, and **Long context** (262k tokens, slower).
+- **State template** — may use only `content` (the screened text) and `conversation` (a list of
+  `{role, content}`), plus names it binds itself with `for` or `set`. Studio refuses any other
+  variable and any name starting with `__`.
+
+<Warning>
+  System One runs outside your deployment. The screened text, everything the state template
+  renders, and, with **Include recent conversation**, the last turns of the conversation (what
+  users wrote and what the agent answered, bounded and with system and tool messages removed)
+  are sent to the System One gateway: TypeSafe, or the base URL you set. Turn on **Include
+  recent conversation** only where sending that data to the gateway is acceptable.
+</Warning>
+
+<Note>
+  A base URL other than TypeSafe's is checked against the workspace egress allow-list. Image
+  (`box`) questions are not available on a text shield. System One needs runtime `0.7.4` or later
+  (core `0.7.6`).
+</Note>
+
+### LLM sentinel memory
+
+An LLM sentinel judges one message at a time. It never reads the conversation history and keeps
+no long-term memory. This is fixed, not configurable: Studio writes it on every save.
+
+## Adding an LLM sentinel
+
+Click **Add Shield** and keep the type **LLM sentinel**:
 
 {/* screenshot: sentinel-add-form */}
 
@@ -36,29 +112,59 @@ Click **Add Sentinel**:
 - **System Prompt** — instructions for the sentinel's LLM. E.g.: *"You are a content moderator. Classify the following user input as `safe` or `unsafe`. Return only the classification label."*
 
 **Config section** — which model powers the sentinel:
-- References a **Safeguard Model** registered in Settings
+- References a model registered under **Models**
+
+**Structured Output** — the shape of the sentinel's verdict, as a JSON schema:
+
+```json Toxicity verdict
+{
+  "title": "toxicity",
+  "type": "object",
+  "properties": {
+    "is_toxic": { "type": "boolean" },
+    "category": { "type": "string" }
+  },
+  "required": ["is_toxic"]
+}
+```
+
+Paste the schema itself; Studio wraps it for the runtime. A structured verdict is what
+empathy rules compare against, so prefer booleans and short labels over prose.
 
 **Conditions section** — what happens based on the sentinel's output:
 
 {/* screenshot: sentinel-condition-builder */}
 
-The visual condition builder lets you define rules like:
-- IF sentinel returns `unsafe` → block the request with a fixed message
-- IF sentinel returns `billing` → tag the request and allow through
-- IF sentinel returns `escalate` → forward to a human handoff flow
+The visual condition builder writes the expression an empathy rule evaluates against this
+sentinel's verdict, such as `is_toxic == True` or `category == 'billing'`.
 
 <Note>
-  Sentinels run synchronously before the main agent. Every user message waits for the sentinel to complete. Use small, fast models (e.g., 7B or smaller) for classification tasks to keep latency low.
+  Sentinels run before the main agent, and every user message waits for them to finish. Use
+  small, fast models (7B or smaller) for classification to keep latency low.
 </Note>
 
-## Using sentinels in agents
+## Using shields in agents
 
-Once a sentinel is created here, it becomes available under **Pre-processor** during agent creation. Multiple sentinels can be chained — they run in order, and if one blocks the request, subsequent sentinels and the main agent are skipped.
+Once a shield is registered, it becomes available under **Shields** during agent
+creation. Assign as many as you need: each evaluates the message and publishes its verdict
+under its own name.
 
-See [Pre-processor](/platform/agent-creation/pre-processor) for how to assign sentinels to agents.
+The same shields can screen the agent's own responses: add them under **Output shields** on the
+same tab. See [Output shields](/platform/agent-creation/shields#output-shields).
+
+With the default **Observe** action a shield records its verdict without refusing the request.
+Set the agent's policy to **Block**, or pair the shield with an empathy rule, to change what the
+user sees.
+
+Agents reference the sentinel, so editing its prompt, model or output schema reaches every
+agent that uses it. What each agent does with the verdict stays with the agent: an agent whose
+specification was set to flag or block keeps that setting when you save it in Studio. A
+sentinel that an agent still uses cannot be deleted.
+
+See [Shields](/platform/agent-creation/shields) for how to assign sentinels to agents and act on their verdicts.
 
 ## Next steps
 
-<Card title="Pre-processor" icon="shield-halved" href="/platform/agent-creation/pre-processor">
+<Card title="Agent shields" icon="shield-halved" href="/platform/agent-creation/shields">
   Add sentinels and empathy rules to an agent.
 </Card>
