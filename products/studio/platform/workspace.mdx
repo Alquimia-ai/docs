@@ -1,0 +1,33 @@
+---
+title: "Workspace"
+description: "See and edit the active workspace's metadata: visibility, status, ownership and distribution."
+---
+
+**Workspace** shows the registry the active workspace is. Open it from **Settings**, under the sidebar's **Workspace** section; it is the first tab.
+
+{/* screenshot: workspace-page */}
+
+| Card | What it shows |
+|------|---------------|
+| **Identity** | Workspace ID, OCI address (`namespace/name:version`), owner, organization, dates. |
+| **Access** | Visibility, status, and whether network egress is restricted. |
+| **Distribution** | The repository it was pulled from, where it is published, and the last pull and push. |
+| **Agents on hold** | Agents that refuse inference until released. |
+
+## Editing
+
+**Edit** changes the name, description, visibility and status. Org admins can edit workspaces of their organization; platform admins any workspace.
+
+| Visibility | Who can open it |
+|------------|-----------------|
+| Private | Its owner and members of its organization. |
+| Protected | Reserved by the platform; Studio treats it like private. |
+| Public | Anyone in an organization that can see it. |
+
+A **disabled** workspace is hidden from the switcher. The default workspace is shared with everyone on the deployment, keeps its name and cannot be disabled or deleted.
+
+**Versions** opens the workspace's published versions. See [Versions](/platform/versions).
+
+## Deleting
+
+Deleting a workspace removes its agents, registrations and secret values. Published versions stay in the OCI registry and can be pulled again from Discover.
