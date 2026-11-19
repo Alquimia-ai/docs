@@ -1,25 +1,43 @@
 ---
-title: "Settings Overview"
-description: "Configure the building blocks that agents are assembled from."
+title: "Elements and Settings"
+description: "Where the elements agents are built from live, and where the workspace itself is configured."
 ---
 
-Settings is where you configure the infrastructure your agents depend on. **Before creating your first agent, configure at least one model here.**
+The sidebar's **Elements** section holds what agents are built from: **Models**, **Knowledge**,
+**Tools**, **Shields** and **Voice**. Each has its own page. **Before creating your first agent,
+register at least one model under Models.**
 
 {/* screenshot: settings-page-overview */}
 
-Think of Settings as the toolbox. Agents are built from the tools in the box. You define the tools once, and any agent in the workspace can use them.
+Think of the elements as the toolbox. You register each tool once, and any agent in the
+workspace can use it.
 
-## The settings sections
+The sidebar's **Workspace** section holds the workspace itself: **Secrets** (every credential the
+elements read — see [Security](/platform/security)), **Activity**, and **Settings**:
+
+| Tab | What it holds |
+|-----|---------------|
+| **Workspace** | The [workspace's](/platform/workspace) metadata, visibility, status and distribution. |
+| **Network egress** | The hosts connectors may reach. See [Security](/platform/security#network-egress). |
+| **Webhooks** | Endpoints the runtime notifies when events happen in the workspace. Platform admins only. |
+| **TrustLens** | Benchmark and evaluation model configuration. The **Agent Humanity** tab in an agent's metrics shows TrustLens evaluations, so it is turned off while TrustLens is disabled. |
+| **Red Teaming** | The attack catalogue (enterprise). |
+
+**My credentials** — your own values for per-user secrets — is the second tab of **Secrets**.
+
+Links to the old addresses keep working: `/dashboard/security` and `/dashboard/credentials` open Secrets (or its My credentials
+tab, or the Network egress tab), `/dashboard/workspace` and `/dashboard/admin/webhooks` open the
+matching Settings tab, and `/dashboard/settings?tab=models` (or `sentinels`, `voice`, `secrets`,
+`mine`) opens the page it moved to.
+
+## The element pages
 
 <CardGroup cols={2}>
-  <Card title="Models Registry" icon="cpu" href="/platform/settings/models">
+  <Card title="Models" icon="cpu" href="/platform/settings/models">
     Register LLM providers and their API credentials. Every agent needs a model.
   </Card>
-  <Card title="MCP Servers" icon="plug" href="/platform/settings/mcp-servers">
-    Connect external tools — APIs, databases, and services agents can call.
-  </Card>
-  <Card title="Sentinels" icon="shield" href="/platform/settings/sentinels">
-    Define safety and pre-processing agents that intercept requests before your main agent runs.
+  <Card title="Shields" icon="shield" href="/platform/settings/sentinels">
+    Classifiers, prompt-injection detection and LLM sentinels that screen requests, tool results and retrieved knowledge.
   </Card>
 </CardGroup>
 
@@ -27,11 +45,38 @@ Think of Settings as the toolbox. Agents are built from the tools in the box. Yo
   Embeddings for the **Knowledge Base** are managed automatically by the Alquimia runtime — there is no embeddings model to configure here.
 </Note>
 
+## Where settings live
+
+Models, shields and voice providers (and the MCP servers on the [Tools](/platform/tools/overview) page) are stored in the runtime registry of the
+workspace. Agents point at them instead of keeping their own copy, so:
+
+- **Editing a setting reaches every agent that uses it.** Rotate a key, or move a model to a
+  new endpoint, and agents pick it up without being saved again.
+- **Settings travel with the workspace.** Publishing a workspace includes the settings its
+  agents use, and pulling or installing one brings them along. The setup wizard only asks for
+  the secret values, which never travel.
+- **A setting in use cannot be deleted.** Studio names the agents (and sentinels) that still
+  use it. Remove it from them first.
+
+The element pages need the runtime to be reachable. When it is not, each one shows **Could not reach the
+runtime registry** instead of an empty list.
+
+### Moving settings to the runtime
+
+Workspaces created before this change keep their settings in Studio's own database. The
+Models, Shields and Voice pages show a **Settings to move to the runtime** notice while any are left. Click **Move to runtime**
+to copy them into the registry. Records keep their identity, so existing agents keep working,
+and it is safe to run more than once.
+
+A setting that cannot move stays where it was and is listed with the reason. For example, a
+model with a connection type the runtime has no connector for. Agents saved before the move
+switch to referencing their settings the next time you save them.
+
 ## Recommended setup order
 
 1. **Models** — required to create any agent
-2. **MCP Servers** — required if you want agents to use external tools
-3. **Sentinels** — optional, for safety and moderation workflows
+2. **Tools** — add MCP servers on the [Tools](/platform/tools/overview) page if you want agents to use external tools
+3. **Shields** — optional, for safety and moderation workflows
 
 <Note>
   All settings are scoped to the active workspace. If you switch to a different workspace, you'll start with an empty settings configuration for that workspace.
@@ -39,4 +84,4 @@ Think of Settings as the toolbox. Agents are built from the tools in the box. Yo
 
 ## Bootstrap from Docker Compose
 
-Cloud models are not pre-filled from `.env`—add them in **Settings → Models Registry**. If you use the **`with-local-models`** profile and set `OLLAMA_MODELS` in `.env`, `studio-init` can register those Ollama models for you; still confirm they appear under Models before you create an agent.
+Cloud models are not pre-filled from `.env`—add them under **Models**. If you use the **`with-local-models`** profile and set `OLLAMA_MODELS` in `.env`, `studio-init` can register those Ollama models for you; still confirm they appear under Models before you create an agent.
