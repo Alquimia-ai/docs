@@ -1,0 +1,85 @@
+---
+title: "Classifying tools"
+description: "Say how dangerous each operation on a registered tool is, and which agent tiers may call it."
+---
+
+One MCP connection usually exposes many tools of very different consequence. A GitHub connection carries `list_issues`, `create_issue` and `delete_repository` behind a single URL. Classifying sorts them, so an agent that only needs to read issues cannot delete a repository.
+
+You classify each connection once. Agents then inherit the result.
+
+## When you classify
+
+Adding an MCP server is two steps: the connection, then its tools. Testing the connection lists what the server exposes, and Studio carries that list straight into the second step — so you classify while it still holds the address and credential needed to ask.
+
+You can add the server without classifying and come back later: open it on the [Tools](/platform/tools/overview) page and choose **Operations**. Tools registered outside Studio (A2A, Llama Stack) are classified the same way, by name or pattern, since Studio cannot list their tools. Studio keeps the address and credential in the secret vault and cannot read them back, so it asks for both again to list the tools.
+
+## Classifying a long list
+
+A real server exposes dozens of tools. Studio suggests a severity for each one from its name, and the bulk actions above the list are how you work through them:
+
+- **Confirm all** agrees with every suggestion at once, keeping each tool's own level. It does not apply one level to everything.
+- **Select** by severity — *Reads only (41)* — to take a whole group at a time.
+- With a selection: **Confirm** it, **Reclassify** it to one severity, or **Remove** the rows.
+
+Reclassifying a selection replaces what Studio worked out per tool, so it asks first and says how many rows disagree with the level you chose.
+
+## Classifying a tool
+
+Each row has three parts:
+
+<ParamField path="Severity" type="Reads only | Changes, reversible | Changes, permanent">
+  What the tool does. Studio suggests one from the tool's name; the suggestion counts for nothing until you confirm it.
+</ParamField>
+
+<ParamField path="Allowed for" type="Reader, Editor, Operator">
+  Which [agent capability levels](/reference/agent-capability) may invoke it.
+</ParamField>
+
+<ParamField path="Ask a human first" type="boolean">
+  Pause the conversation until someone approves the call.
+</ParamField>
+
+### Severity limits which levels you can grant
+
+Marking a tool **Changes, permanent** makes *Reader* and *Editor* unavailable. This is not a Studio preference — the platform enforces it, and granting a level the severity forbids is silently discarded rather than rejected. Studio disables the option so you are not left believing you granted something.
+
+<Warning>
+**A tool nobody classifies is refused.** There is no permissive default. A connection you register and never classify does nothing at all — which is deliberate: forgetting fails closed rather than leaving a hole open.
+
+The panel lists anything left unclassified before you save.
+</Warning>
+
+## Patterns
+
+Set the match to **Pattern** to classify many tools at once — `delete_*` for every removal a server exposes, or `*` when everything on a connection shares one classification.
+
+Order matters: the platform uses the **first** rule that matches a tool name, not the most specific. A `*` rule at the top makes every rule below it unreachable. Use the arrows to reorder, and check the "Covers" line under each rule to see what it actually captures. The **Effective access** tab marks a rule that can never be reached as **Never reached**.
+
+## What "Ask a human first" means
+
+A tool marked **Changes, permanent** always requires approval, whatever the checkbox says. The platform forces it.
+
+When an agent calls one, the conversation pauses and waits for a person to approve or reject the call. The request shows the tool name and the arguments it was called with, so you are approving something specific rather than a prompt you cannot see. A rejection can carry a reason, which is kept in the audit trail.
+
+In **Try me** you answer it there. Anywhere else the agent runs, whoever it is talking to answers it. A gate raised through an integration channel has to be answered on that channel.
+
+<Note>
+  A decision is recorded once. If someone else has already answered a request — or it was answered on its original channel — Studio says so rather than letting you submit a second decision.
+</Note>
+
+## When none of this applies
+
+If your runtime does not enforce tool authorization, unclassified connections work normally and Studio says so rather than warning you. Classification still saves, and takes effect when enforcement is switched on.
+
+Whoever installed Studio controls this with `NEXT_PUBLIC_TOOL_AUTHZ_ENABLED`, matching the runtime's own setting.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Agent capability" icon="shield" href="/reference/agent-capability">
+    How Studio decides what an agent is allowed to do.
+  </Card>
+  <Card title="When a tool is refused" icon="circle-question" href="https://docs.alquimia.ai/troubleshooting/tool-denied/">
+    The four reasons a call gets refused, and how to fix each.
+  </Card>
+</Columns>
