@@ -1,20 +1,22 @@
 ---
 title: "Discover"
-description: "Browse, install, and publish agent workspaces from the community catalog."
+description: "Browse and install agent workspaces, and register Brains, from the community catalog."
 ---
 
-The Discover page is a catalog of published agent workspaces. Browse ready-made agents from your organization or the community, install them into your workspace, or publish your own configurations for others to use.
+The Discover page has two tabs. **Agents** is a catalog of published agent workspaces you can install or clone. **Brains** is a catalog of published knowledge artifacts you can register so your agents can query them.
 
 {/* screenshot: discover-page-grid */}
 
-## Browsing the catalog
+## Agents
+
+### Browsing the catalog
 
 - **Grid / List toggle** — switch between card grid and compact list view
 - **Search** — find agents by name or description
 
 Click any card to open the **Agent Detail Modal**.
 
-## Agent detail modal
+### Agent detail modal
 
 {/* screenshot: agent-detail-modal */}
 
@@ -23,64 +25,181 @@ The detail modal shows:
 - Tags and capabilities overview
 - **Version picker** — if the publisher has released multiple versions (tags), select which one to install
 
-## Installing agents
+### Installing agents
 
 Two installation modes:
 
-### Add to workspace
+#### Add to workspace
 
 Copies the agents from the published workspace into your **current active workspace**. Your existing agents are unaffected — this is an additive operation.
 
 Use this when you want to pull in specific agents from a template and combine them with your own.
 
-### Clone full workspace
+<Note>
+  The model connections, MCP servers, sentinels and voice providers the agents use are copied
+  with them, except values that look like credentials (for example an `Authorization`
+  header). The runtime never returns those, so they can't be copied. The setup wizard lists
+  each value under **Values to enter again**. Add them in **Settings** before you use the
+  agents.
+</Note>
+
+#### Clone full workspace
 
 Creates a **brand-new workspace** based on the published one. All agents, settings, and configurations from the source are cloned.
 
 Use this when you want a complete starting point — a new workspace with everything already configured.
 
+Before the clone starts, Studio asks how to set up the new workspace:
+
+| Field | Description |
+|-------|-------------|
+| **Name** | The new workspace's name. Studio suggests the source's name. A name that is already taken is refused, with a free one suggested |
+| **Description** | Optional. Studio suggests the source and version it was cloned from |
+| **Organization** | Platform administrators can choose any organization, or none. Members of several organizations choose one of theirs. Everyone else gets their own organization |
+| **Visibility** | **Private** or **Public**, as for a workspace you create yourself |
+| **Switch to the new workspace** | On by default. Makes the clone your current workspace when it's ready |
+
 <Note>
   Cloned workspaces are independent copies. Changes you make to your clone don't affect the original, and updates to the original aren't pushed to your clone.
 </Note>
 
-## Publishing your workspace
+### Publishing your workspace
 
 Share your agents with others by publishing your workspace to the catalog.
 
-Click **Publish** from the Dashboard header or from inside the Discover page.
+Click **Publish** from the Dashboard header. Platform administrators in deployments that
+enable Alquimia Hub first choose **This workspace** or **Alquimia Hub**; everyone else goes
+straight to the form.
 
-{/* screenshot: publish-modal */}
+{/* screenshot: publish-wizard */}
 
 Fill in the publish form:
 
 | Field | Description |
 |-------|-------------|
-| **Name** | OCI-compatible name (lowercase, hyphens allowed, no spaces). E.g., `customer-support-starter` |
-| **Tag** | Version label. Use semantic versioning (e.g., `1.0.0`) or `latest` |
-| **Description** | What this workspace contains and who it's for |
+| **Version** | A version number such as `1.2.0`. Studio suggests the next one |
+| **Description** | What this workspace does, in one sentence. Required for Alquimia Hub |
+| **More details** | Optional longer description |
+| **Category** and **Tags** | How it is found in the catalog. At least one tag is required for Alquimia Hub |
+| **Requirements** | What people need to set it up, such as API keys. Required for Alquimia Hub |
 | **Logo** | Optional image representing the workspace in the catalog |
 
 <Note>
-  When you publish with a versioned tag (e.g., `1.0.0`), Studio also publishes `latest` automatically. This ensures users who install without specifying a version always get the most recent one.
+  **Make this the default version** moves `latest` to the version you are publishing. It is off
+  by default. `latest` is a pointer: moving it changes what everyone following it is running.
+  Anyone who pinned an actual version is unaffected either way.
 </Note>
 
+**Publish** stores the version in your own deployment. Platform administrators, in
+deployments that enable it, can choose **Alquimia Hub** in the same Publish wizard to list a
+version there too: either a new version made from the current workspace, or one that already
+exists. The Hub gets a copy of that version under the same number, with the notes it was
+published with, and requires a description, requirements and at least one tag. The Hub has no
+`latest`: installers pick a version. See
+[Publishing a version to Alquimia Hub](/platform/versions#publishing-a-version-to-alquimia-hub).
+
 <Warning>
-  Published workspaces are visible to anyone with access to your registry. Secrets are stored as `$secretRef` references — not raw values — so they're safe to publish. However, avoid publishing proprietary system prompts or sensitive business logic you don't want shared.
+  Published workspaces are visible to anyone with access to the registry they go to — for Alquimia Hub, anyone at all. Secrets travel as `$secretRef` references plus their definitions (key, description, type) — never values. Review secret descriptions before publishing to the Hub, and avoid publishing proprietary system prompts or sensitive business logic you don't want shared.
 </Warning>
 
-## Version management
+### Version management
 
 Each published workspace can have multiple tags (versions). The detail modal's version picker lets installers choose which tag to install.
 
-To publish a new version of an existing workspace, use the same workspace name with a new tag (e.g., `1.1.0`). The `latest` tag is updated automatically.
+To publish a new version, publish again with a new number — Studio suggests the next patch and
+warns before replacing a version someone may be running.
+
+See [Workspace Versions](/platform/versions) for publishing versions, publishing one to
+Alquimia Hub, the list of what is published, and running an agent against a specific version.
+
+### Sources
+
+Discover lists workspaces from two places. Each card shows which one it came from:
+
+| Badge | Source | What it holds |
+|---|---|---|
+| **This deployment** | This deployment's own registry | Versions published from Studio by anyone in this deployment, any organization. See [Versions](/platform/versions) |
+| **Alquimia Hub** | Alquimia's public registry | Workspaces published for anyone to install. Listed only when the deployment sets `EXTERNAL_REGISTRY_URL` |
+
+When both sources are listed, a filter above the catalog narrows it to one of them. If a workspace was published to both, it appears twice, once per source. Each card installs from its own registry.
+
+If one source cannot be reached, Discover still lists the other one and warns which source is missing.
+
+A Hub card shows the description the version was published with, read from the version
+itself. The Hub's own index only records where a version was copied from, and Discover never
+shows that.
+
+If Alquimia Hub can be reached but lists nothing while its registry index exists, Discover says
+so. Entries without a valid signature are hidden from the catalog (and refused on install) when
+the runtime requires signatures, which is the default. A workspace published to the Hub
+without a signature is therefore invisible here, without any error.
+
+### Where the catalog comes from
+
+When the runtime keeps a **registry index** (`ALQUIMIA_OCI_INDEX_ENABLED=true`, runtime 0.5.2 or later), every publish is recorded in it, and Discover reads the list of published workspaces and Brains from it. This works without registry administrator rights.
+
+Without the index, Studio asks the registry catalog for the list instead. Some registries, such as Harbor, restrict that catalog to administrators.
+
+The versions of each workspace and Brain always come from the registry itself. The index would miss versions published before it was turned on. For Brains, the registry also reports which memory modules each version ships.
+
+## Brains
+
+The **Brains** tab lists knowledge artifacts published to your registry. Registering one makes it available to every agent in the current workspace — see [Brains](/platform/agent-creation/brains) for what a Brain is and how an agent uses it.
+
+{/* screenshot: discover-pods-grid */}
+
+Filter the catalog by memory module, or search by name, source or description. Each card shows the Brain's OCI source, its modules, and whether it is registered in this workspace.
+
+Brains are built and published with the Alquimia CLI. Studio reads them; it never creates one.
+
+<Note>
+  The version picker lists every release of a Brain. Branch versions, whose tags start with `br.`, are not listed: a registration always follows a release tag such as `latest`. A Brain with no release shows no versions and cannot be registered. Listing Brain versions needs runtime 0.6.0 or later.
+</Note>
+
+### Registering a Brain
+
+Click a card to open its detail modal.
+
+{/* screenshot: knowledge-pod-detail-modal */}
+
+| Choice | Description |
+|--------|-------------|
+| **Version** | Which published tag agents will read. Pinned until you change it. |
+| **Memory modules** | Which modules agents in this workspace may read. |
+
+Registration *is* the grant: a module you check is both installed and readable, and a module you leave unchecked is denied outright — there is no Brain-wide fallback.
+
+<Warning>
+  A Brain registered with no modules selected registers successfully and then returns nothing, forever, with no error anywhere. Studio disables the Register button in that state, but it is worth knowing why.
+</Warning>
+
+<Note>
+  A new registration reaches your agents in about a minute. Studio never reports this as instant.
+</Note>
+
+### Changing a version or grants
+
+Reopen the Brain and change its version or module selection, then save. Agents already using the Brain pick up the change within about six minutes — the registry sync plus the workers' brain cache TTL.
+
+Narrowing a grant takes effect the same way. Any agent that had narrowed its own module list further keeps that narrower list; an agent can never read more than the workspace grant allows.
+
+### Deregistering
+
+Deregistering removes the workspace's registration. The published artifact is untouched and you can register it again later.
+
+Agents still referencing the Brain will start failing their searches, so Studio names them before you confirm.
+
+### When a source goes missing
+
+A Brain registered from a repository that has since been renamed, removed, or published elsewhere still appears in the catalog, flagged **source not found in registry**. Its agents will fail to search, but you can still open it and deregister it — otherwise the registration would be unreachable.
 
 ## Next steps
 
 <CardGroup cols={2}>
+  <Card title="Brains" icon="hexagon" href="/platform/agent-creation/brains">
+    Attach a registered Brain to an agent.
+  </Card>
   <Card title="Workspaces" icon="folder" href="/core-concepts/workspaces">
     Understand how workspaces and OCI addressing work.
-  </Card>
-  <Card title="Dashboard" icon="layout-dashboard" href="/platform/dashboard">
-    Manage and test agents in your workspace.
   </Card>
 </CardGroup>

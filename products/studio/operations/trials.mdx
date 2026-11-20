@@ -1,0 +1,123 @@
+---
+title: "Trials in Kubernetes"
+description: "Build the trial image, grant Studio the RBAC and bucket access it needs, and enable trials."
+---
+
+Studio runs each [trial](/guides/trials) as a Kubernetes Job. It writes the generated `trial.toml` to an S3 bucket, creates a Job that runs the alquimia-trial image, polls the Job's status and pod log, and reads the plan, status and report back from the bucket. There is no extra service to deploy.
+
+## How a run flows
+
+1. Studio validates the wizard and writes `input/trial.toml` (and `input/policy.toml`) to the bucket.
+2. Studio creates a Job in the trial namespace. The pod's entrypoint downloads the config, runs `trial run --dry-run --json`, and uploads `plan.json`.
+3. The pod runs `trial run` with `--out` and `--html` (and `-p policy.toml`), optionally `trial attach`, then uploads `output/` and `status.json`.
+4. Studio reads `status.json` for the trial's exit code, then caches the report's headline numbers on the run record.
+
+A preview is the same Job in `plan` mode. It stops after step 2.
+
+## Build the image
+
+alquimia-trial reads alquimia-core and red-teaming from sibling checkouts, so build from the directory that holds all of them:
+
+```bash
+docker build -f alquimia-trial/Dockerfile -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/alquimia-trial:0.1.0 .
+aws ecr get-login-password | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
+docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/alquimia-trial:0.1.0
+```
+
+The image runs as UID 10001 with a read-only root filesystem. It includes `oras`, `cosign` and the Job entrypoint, alquimia-trial's `docker/entrypoint.sh`. Set `TRIAL_IMAGE` to the pushed tag or digest.
+
+## Cluster access
+
+`deploy/k8s/trial-rbac.yaml` is the starting point. Apply it once per trial namespace. It contains:
+
+- **Studio's Role**: `create/get/list/watch/delete` on `jobs`, `get/list/watch` on `pods`, `get` on `pods/log`, and `create/get/update/delete` on `secrets`, in the trial namespace only. No exec. The Secrets grant exists for per-run credentials. Kubernetes can't limit `create` by name, so it covers every Secret in the namespace. Keep the trial namespace for trials only.
+- **The `trial-runner` ServiceAccount**: the pod's identity. Its IRSA role may read `*/input/*` and write `*/plan.json`, `*/status.json` and `*/output/*` under the trial prefix.
+- **The shared Secret** (`TRIAL_ENV_SECRET`): the environment every trial pod gets, for infrastructure settings such as S3 access. You can also put model keys here that every run may share; the wizard lists them under **Shared in the cluster** (key names only). Studio never puts a credential in a Job spec.
+- **Per-run credentials**: what a person enters in the wizard goes into a Secret of that run alone, `trial-<run id>-creds`, labelled with the run and workspace. It's mounted after the shared Secret, so a per-run value wins over a shared one with the same name. The run's Job owns it, so the cluster deletes it with the Job. Cancel deletes it straight away. Studio stores no values, and `trial.toml` only names them as `env:` sources. Names the pod uses itself (`TRIAL_*`, `AWS_*`, `PATH`, …) are refused.
+- **An optional PVC** (`TRIAL_HOME_PVC`): persistent working state, so a resumed trial continues instead of starting over.
+
+Studio authenticates with its in-cluster ServiceAccount (IRSA on EKS). It can also use `K8S_KUBECONFIG`, a path or a base64-encoded kubeconfig, when it runs outside the cluster. Studio never reads `~/.kube/config` implicitly.
+
+<Note>
+The trial pod pulls the artifact with `oras` and checks signatures with `cosign`. For a registry that needs credentials, see [Private registries](#private-registries).
+</Note>
+
+### Private registries
+
+Put the registry login in a `kubernetes.io/dockerconfigjson` Secret in the trial namespace (in every per-agentspace namespace, when those are on), and name it in `TRIAL_REGISTRY_SECRET`:
+
+```bash
+kubectl -n alquimia-trials create secret docker-registry trial-registry \
+  --docker-server=registry.example.com \
+  --docker-username=trial-reader \
+  --docker-password="$TOKEN"
+```
+
+Studio mounts its `.dockerconfigjson` read-only as `/etc/trial/registry/config.json` in every trial pod, previews included, and sets `DOCKER_CONFIG=/etc/trial/registry`. `oras` and `cosign` read it from there. Studio only names the Secret. It never reads it, and it puts nothing from it in the Job spec, so Studio's Role needs no extra access.
+
+- One Secret can hold several registries: the `auths` of a single `config.json`.
+- Only static `auths` work. The image has no credential helpers, so `credHelpers` and `credsStore` entries are ignored.
+- Tokens that expire, such as ECR's 12-hour tokens, need something that refreshes the Secret.
+- `trial attach` (`TRIAL_ATTACH_TO_ARTIFACT=on`) pushes to the registry, so the login then needs push rights.
+- When the Secret is missing, the pod can't start: the Job stays pending with a `FailedMount` event.
+
+### Tenant isolation
+
+By default every agentspace shares `K8S_TRIAL_NAMESPACE`. Studio isolates runs by its own authorization, and every Job carries an `alquimia.ai/agentspace` label.
+
+With `K8S_NAMESPACE_PER_AGENTSPACE=on`, each agentspace's Jobs run in `<K8S_TRIAL_NAMESPACE>-<agentspace>`. Bind the Role in each of these namespaces, so the cluster enforces the boundary too. Studio never creates namespaces; provision them with their RBAC.
+
+The `<agentspace>` part is the agentspace id itself when it is already a lowercase DNS label: letters, digits and `-`, starting and ending with a letter or digit, short enough to fit. Any other id becomes `<sanitized-id>-<hash>`, where the hash is 12 hex characters computed from the exact id. This way two agentspaces whose ids sanitize to the same text (`acme_corp` and `acme@corp`) never share a namespace or a bucket prefix. The default agentspace `_default` maps to `default-<hash>`. The value is also the `alquimia.ai/agentspace` label on every trial Job, so `kubectl get jobs -A -L alquimia.ai/agentspace` shows it.
+
+`K8S_TRIAL_NAMESPACE` can be at most 49 characters when namespaces are per agentspace, which leaves room for the hash. Studio refuses to start a trial on a configuration that cannot produce a valid namespace.
+
+## Bucket layout
+
+```
+s3://<TRIAL_S3_BUCKET>/<TRIAL_S3_PREFIX>/<agentspace>/runs/<run-id>/
+  input/trial.toml   input/policy.toml
+  input/catalogues/<name>-v<version>.json   red-teaming library catalogues the run uses
+  input/suites/injection.json               a custom injection suite
+  plan.json          status.json
+  output/report.json output/report.html   (+ the layers --detail asked for)
+s3://…/<agentspace>/previews/<preview-id>/{input/trial.toml, plan.json, status.json}
+```
+
+Studio's own IRSA role needs `s3:PutObject` and `s3:DeleteObject` on `*/input/*` (inputs of a run that never started are removed) and `s3:GetObject` under the prefix. The trial pod's role needs `s3:ListBucket` limited to `<prefix>/*/input/*`, because it downloads the whole `input/` folder. Scope IAM policies by the agentspace segment if tenants must not read each other's reports. That segment is the same `<agentspace>` value as the namespace above, so no two agentspaces share one.
+
+## Enable trials
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `K8S_BRIDGE_ENABLED` | `on` | Lets Studio talk to a Kubernetes API at all. |
+| `TRIALS_ENABLED` | `on` | Turns trials on. Also needs `ENTERPRISE=true`. |
+| `K8S_TRIAL_NAMESPACE` | `alquimia-trials` | Namespace for trial Jobs. |
+| `K8S_NAMESPACE_PER_AGENTSPACE` | `off` | `on` gives each agentspace its own namespace. |
+| `TRIAL_IMAGE` | `…/alquimia-trial:0.1.0` | The trial image. Required. |
+| `TRIAL_SERVICE_ACCOUNT` | `trial-runner` | The pod's ServiceAccount (IRSA). |
+| `TRIAL_ENV_SECRET` | `trial-model-keys` | Secret exposed to the pod as environment variables. |
+| `TRIAL_REGISTRY_SECRET` | `trial-registry` | Optional `dockerconfigjson` Secret, mounted as the pod's `DOCKER_CONFIG` for `oras` and `cosign`. See [Private registries](#private-registries). |
+| `TRIAL_HOME_PVC` | `trial-home` | Optional persistent working state. |
+| `TRIAL_ACTIVE_DEADLINE_SECONDS` | `9000` | Hard limit per run pod. |
+| `TRIAL_TTL_SECONDS_AFTER_FINISHED` | `86400` | How long finished Jobs and their logs stay. |
+| `TRIAL_BACKOFF_LIMIT` | `0` | Pod retries. Kept at 0, so a refused or policy-failed trial is not re-run blindly. |
+| `TRIAL_CPU_REQUEST` … `TRIAL_MEMORY_LIMIT` | `1`, `2Gi` | Optional resources. |
+| `TRIAL_OCI_REGISTRY` | `registry.internal:5000` | Host that internal workspace versions are pulled from. |
+| `TRIAL_S3_BUCKET` | `my-trials` | The trial bucket. Required. |
+| `TRIAL_S3_PREFIX` | `trials` | Key prefix. |
+| `TRIAL_S3_REGION` | `us-east-1` | Bucket region. |
+| `TRIAL_S3_ENDPOINT` | | Only for an S3-compatible store such as MinIO. |
+| `TRIAL_ATTACH_TO_ARTIFACT` | `off` | `on` attaches each report to the artifact as an OCI referrer. |
+| `TRIAL_ATTACH_SIGN` | `keyless` | Optional `--sign` for `trial attach`. Set it as a key of the `TRIAL_ENV_SECRET` Secret, **not** on Studio: Studio no longer writes it into the Job spec, where anyone who can read a Job could see it. A value left on Studio is ignored and logged once. |
+
+Flags are off unless set to exactly `on`.
+
+## Red-teaming library catalogues
+
+The wizard also offers the catalogues published from **Roast Me › Catalogues**. Studio reads the pinned version from the red-teaming store (`RED_TEAMING_API_URL` and `RED_TEAMING_S3_*`, the same settings as Roast Me) and copies it into the run's `input/` folder. The trial pod never talks to the red-teaming service. Without those settings, the wizard says the library is not configured and offers the bundled catalogues only.
+
+The trial image must download the whole `input/` folder (`TRIAL_INPUT_URI`). Images built before this support only read `trial.toml`, so a run that uses a library catalogue or a custom suite is refused at its first step. Rebuild the image from alquimia-trial.
+
+## Observability
+
+Studio logs structured events: `trial.preview.submitted`, `trial.run.submitted`, `trial.run.finished` (with status, exit code and violation rate), `trial.run.cancelled` and `trial.run.resumed`. They carry the run id, agentspace and user, and they reach your collector through Studio's existing OpenTelemetry log pipeline.
