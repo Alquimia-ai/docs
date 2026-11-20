@@ -9,7 +9,7 @@ description: "Connect the agent to external services it can call during a conver
 
 ## Selecting MCP servers
 
-Choose from the list of servers registered in [Settings → MCP Servers](/platform/settings/mcp-servers). You can assign multiple servers to a single agent.
+Choose from the list of servers registered in [Tools](/platform/tools/overview). You can assign multiple servers to a single agent.
 
 {/* screenshot: mcp-server-selector */}
 
@@ -50,3 +50,26 @@ Tool descriptions are set in the MCP server itself, not in Studio.
     Override the evaluation strategy or customize how tools are presented in the prompt.
   </Card>
 </CardGroup>
+
+## What this agent will be allowed to do
+
+Once you select servers, Studio shows the agent's [capability level](/reference/agent-capability) and how it arrived at it:
+
+> This agent is **Operator**, because *Delete repository* makes a change that cannot be undone.
+
+There is no level to choose. Studio takes the lowest one that covers every tool you selected, so an agent is never left below what it needs — the failure that is hardest to diagnose, because the configuration looks right and the call is refused at runtime.
+
+Below it, Studio lists anything that **would be refused** and why, phrased as the change that fixes it:
+
+- The tool has not been classified — classify it on the [Tools](/platform/tools/classifying-tools) page.
+- The tool is granted to levels above this agent's.
+- The tool's severity excludes this agent's level, whatever it is granted to.
+- You restricted this agent below what the tool needs.
+
+A whole connection with nothing classified is called out separately: every tool on it is refused, not just one.
+
+Tools that pause for human approval are flagged here too. The conversation stops and waits for someone to approve or reject the call — in **Try me** you answer it there, and anywhere else the agent runs, whoever it is talking to does.
+
+<Note>
+These are warnings, not blockers. Whether a refusal actually happens depends on how the runtime is configured, so Studio lets you save either way.
+</Note>

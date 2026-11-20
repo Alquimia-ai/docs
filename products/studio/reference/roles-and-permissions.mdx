@@ -29,10 +29,38 @@ Studio uses role-based access control (RBAC). When using **Keycloak**, roles and
 | Add/edit MCP servers | ❌ | ✅ | ✅ | ✅ |
 | Add/edit embeddings | ❌ | ✅ | ✅ | ✅ |
 | Add/edit sentinels | ❌ | ✅ | ✅ | ✅ |
-| Publish workspace | ❌ | ✅ | ✅ | ✅ |
+| Read Red Teaming catalogues (Enterprise) | ✅ | ✅ | ✅ | ✅ |
+| Validate/publish assistant-specific Red Teaming catalogues | ❌ | ❌ | ✅ | ✅ |
+| Validate/publish global Red Teaming catalogues | ❌ | ❌ | ❌ | ✅ |
+| Publish a workspace version (this deployment) | ❌ | ❌ | ✅ | ✅ |
+| Publish a version to Alquimia Hub (when the deployment enables it) | ❌ | ❌ | ❌ | ✅ |
+| Remove a published version (this deployment or Alquimia Hub) | ❌ | ❌ | ❌ | ✅ |
 | Manage workspace members | ❌ | ❌ | ✅ | ✅ |
 | Create/delete workspaces | ❌ | ❌ | ✅ | ✅ |
 | Platform-wide administration | ❌ | ❌ | ❌ | ✅ |
+
+<Note>
+  Publishing captures the whole workspace — every agent in it — as an immutable release, which
+  is why it sits with workspace administration rather than with editing agents. Publishing to
+  the **public** catalog, and removing a published version, are reserved for platform
+  administrators: a public artifact can be pulled by anyone and cannot be recalled, and
+  removing one breaks anything pinned to it. Only platform administrators see the **Alquimia Hub**
+  choice in the Publish wizard.
+</Note>
+
+## Pending accounts
+
+A user who signs in through an external identity provider for the first time arrives with no
+role at all. Studio sends them to a **pending approval** screen rather than into the app,
+because an account with no role can reach the interface and then be denied every action —
+which looks like a broken product rather than a missing assignment.
+
+Assign them a role (below) and ask them to sign out and back in.
+
+<Note>
+  A user with **no role but a group** is not pending: they belong to an organization and are
+  treated as a `viewer`. Only "no role and no group" is a pending account.
+</Note>
 
 ## Assigning roles
 
@@ -49,4 +77,18 @@ If you're using **Keycloak**, roles are assigned there:
 
 ## Groups
 
-In addition to roles, **Keycloak groups** (when enabled) are extracted from the JWT and available in the session. Groups can be used for workspace isolation and organizational scoping. Consult your platform administrator for your organization's group structure.
+In addition to roles, **Keycloak groups** (when enabled) are extracted from the JWT and available in the session. Groups decide **organizational scoping**: which organizations you see, and which namespace your workspaces are published under. Consult your platform administrator for your organization's group structure.
+
+### The master organization
+
+Membership of the master organization group (`NEXT_PUBLIC_MASTER_ORGANIZATION`, `admin` by
+default) resolves to the `platform-admin` role. There is one privilege axis — your role — and
+group membership feeds into it rather than sitting beside it.
+
+<Warning>
+  Assign the `platform-admin` **realm role** as well, not just the group. Studio can resolve
+  the role for its own screens, but the Alquimia runtime reads roles from the token the
+  identity provider issued. A master-organization member without the realm role is an
+  administrator in Studio and an unprivileged caller to the runtime — which shows up as
+  actions that are available in the interface and then refused.
+</Warning>

@@ -15,13 +15,39 @@ Studio supports **Keycloak** (enterprise SSO) or **Lite** login (local credentia
 
 Enter the credentials configured in your `.env` file (the defaults are in `.env.example`). After logging in, you'll land on the Studio dashboard.
 
+## If your account is pending approval
+
+Signing in with an enterprise identity provider (Google through Keycloak, for example) creates
+your Studio account the first time you use it — but it does not give it a role. When that
+happens you land on a **pending approval** screen instead of the dashboard:
+
+> Your account is pending approval. You signed in successfully, but no role has been assigned
+> to your account yet.
+
+Nothing is wrong with your credentials. Ask your platform administrator to assign you a role,
+then sign out and back in to pick it up. See [Roles & Permissions](/platform/reference/roles-and-permissions)
+for what each role can do.
+
+<Note>
+  If you can reach the dashboard but actions are greyed out, you have a role — just a
+  read-only one. That is the `viewer` role, not a pending account.
+</Note>
+
+## If your session expires
+
+Studio renews your access token in the background. If it cannot — because the identity
+provider ended your session, or an administrator revoked it — you are taken to an
+**authentication error** page saying your session expired, with a button to sign in again.
+Nothing you were working on is lost that had already been saved.
+
 ## The onboarding tour
 
 On your first visit, Studio starts an onboarding tour automatically. It highlights the key areas of the app:
 
 1. **Dashboard** — your agent feed
-2. **Settings** — where you configure models, MCP servers, and more
-3. **Discover** — the community agent catalog
+2. **Tools** — the tools your agents may use, and what each may do
+3. **Elements** — Models, Knowledge, Tools, Shields and Voice, each on its own page
+4. **Discover** — the community agent catalog
 
 {/* screenshot: onboarding-tour-start */}
 
@@ -30,10 +56,10 @@ You can dismiss the tour at any time and restart it from the sidebar if needed.
 ## Before creating your first agent
 
 <Warning>
-  The **Create Agent** button in the sidebar is **disabled until at least one model is configured**. Go to Settings → Models Registry and add a model first.
+  The **Create Agent** button in the sidebar is **disabled until at least one model is configured**. Go to **Models** in the sidebar and add a model first.
 </Warning>
 
-If the models list is empty, [add a model in Settings](/platform/settings/models) before creating an agent.
+If the models list is empty, [add a model under Models](/platform/settings/models) before creating an agent.
 
 ## The sidebar
 
@@ -42,8 +68,11 @@ The sidebar is your main navigation:
 - **Dashboard** — view and manage your agents
 - **Create Agent** — open the agent creation wizard (disabled without a model)
 - **Discover** — browse and install community agents
-- **Settings** — models, MCP servers, embeddings, sentinels
+- **Elements** — models, knowledge, tools, shields and voice: what agents are built from
+- **Workspace** — secrets, activity, and settings (workspace, network egress, webhooks, TrustLens)
 - **Workspace switcher** (top of sidebar) — switch between workspaces
+
+**My credentials**, your own values for per-user secrets, is the second tab of **Secrets**.
 
 {/* screenshot: sidebar-navigation */}
 

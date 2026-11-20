@@ -15,8 +15,13 @@ Each card shows:
 - **Status** — Running, Paused, or Stopped (whether the agent is live for the runtime)
 - **Tags** (when set)
 - **Last active** (when available)
+- **Red Teaming icon** beside the card menu, when Enterprise is enabled and the agent has a recorded evaluation
 
 **Click anywhere on the card** to open the [agent detail page](#agent-detail-page). Use the **⋯** button in the top-right to open the card menu without leaving the dashboard.
+
+Select the Red Teaming icon to open that agent's **Roast Me** overview. The icon indicates an
+evaluation exists, not its status or result. Evaluation statuses and estimates appear inside
+Roast Me, not at the bottom of the dashboard card. The runtime status remains separate.
 
 {/* screenshot: dashboard-agent-card-actions */}
 
@@ -25,11 +30,11 @@ Each card shows:
 | Item | What it does |
 |------|----------------|
 | **View details** | Opens the agent detail page (same as clicking the card). |
-| **Metrics** | Opens the agent metrics dialog for that agent (Prometheus-backed charts for the selected assistant). |
+| **Metrics** | Platform admins only. Opens the agent metrics dialog for that agent: Prometheus-backed charts read through the runtime's `/telemetry` API, plus an **Available Data** tab listing every metric the runtime emits and which ones currently have data. |
 | **Edit** | Opens the agent detail page in **edit** mode. Shown when your role allows editing. |
 | **Start agent** | Brings the agent online for the runtime when it is not Running. Shown when your role allows editing. |
 | **Stop agent** | Pauses the agent for the runtime while keeping its configuration. Shown when the agent is Running and your role allows editing. |
-| **Copy ID** | Copies the full assistant identifier (including workspace scope) to the clipboard. |
+| **Copy ID** | Copies the agent's OCI reference, `<namespace>/<agent-id>:<version>`, to the clipboard. The version is the one the workspace points at, or `latest` if the workspace has never been published. |
 | **Copy Slack connector** | Copies the Slack inbound connector URL for this agent. |
 | **Delete** | Starts delete confirmation; permanently removes the agent when confirmed. Shown when your role allows deleting. |
 
@@ -48,16 +53,34 @@ After you open an agent from the dashboard, the detail page is where you review 
 - **Try Me** is available when you are **not** in edit mode; while you are editing, finish or cancel edits first so the drawer matches the saved agent.
 - Inside the drawer, traffic hits the Runtime with the agent’s resolved config (model, prompts, tools, memory, etc.), which makes it a practical sanity check before you share or publish the agent.
 
+### Agent modes and unsaved edits
+
+**Configure** is the agent editor. **Roast Me**, when Enterprise is enabled, is a separate mode
+for [evaluating the saved agent](/guides/agent-evaluations). Each mode has its own URL; runs and
+comparisons can be opened directly. Links to sections within Configure can use `?tab=memory`,
+for example, without opening another mode.
+
+Switching between Configure and Roast Me keeps your unsaved agent edits in the current page.
+Select **Save** to apply them or **Cancel** to discard them. Runs still evaluate the saved agent.
+These drafts are not stored durably; save before refreshing or leaving the agent workspace.
+
 ## Publishing
 
-The **Publish** button in the header lets you publish your entire workspace to the [Discover catalog](/platform/discover). This packages your agents so others can install them.
+The **Publish** button in the header lets you publish your workspace — all of its agents, or only the ones you pick — to the [Discover catalog](/platform/discover). This packages your agents so others can install them. See [Versions](/platform/versions#choosing-the-agents).
+
+## Agents that are not shown
+
+The runtime skips a stored agent whose configuration it no longer accepts, for example one
+written for an older version or edited by hand. The dashboard then says how many it skipped
+and names them. The agent can't be opened in Studio, and the rest of the list loads as usual.
+Re-save the agent from its spec, or delete it.
 
 ## Empty state
 
 If no agents exist yet, the dashboard shows an empty state with a prompt to create your first agent.
 
 <Warning>
-  The **Create Agent** button in the sidebar stays disabled until at least one model is configured in Settings. If it is grayed out, [add a model first](/platform/settings/models).
+  The **Create Agent** button in the sidebar stays disabled until at least one model is registered under Models. If it is grayed out, [add a model first](/platform/settings/models).
 </Warning>
 
 ## Next steps

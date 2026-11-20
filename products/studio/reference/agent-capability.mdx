@@ -1,0 +1,67 @@
+---
+title: "Agent capability"
+description: "What an agent is allowed to do, how Studio works it out, and why it is not the same as a user role."
+---
+
+Every agent carries a **capability level**: a ceiling on what its tools may change. The platform checks it on every tool call and every knowledge search, and refuses anything above it.
+
+Studio works the level out from the tools you select, so you do not have to choose one up front.
+
+## The three levels
+
+| Level | The agent may | Example |
+|-------|---------------|---------|
+| **Reader** | Look things up | Search issues, read a file, list records |
+| **Editor** | Change things that can be undone | Create an issue, update a record, post a comment |
+| **Operator** | Change things that cannot be undone | Delete a repository, drop a table, revoke access |
+
+Each level includes the ones below it.
+
+<Warning>
+**Capability is not a user role.** Studio's user roles — viewer, editor, org-admin, platform-admin — decide what *you* may do in Studio. Capability decides what an *agent* may do to your systems.
+
+The word *editor* appears in both lists and means different things: a user who is an editor may change agents in Studio; an agent whose capability is Editor may make reversible changes to your systems. They are unrelated, and an agent's capability is not affected by who created it.
+</Warning>
+
+## How Studio picks a level
+
+Studio takes the lowest level that can invoke every tool you have selected, and shows it with the reason:
+
+> This agent is **Operator**, because *Delete repository* makes a change that cannot be undone.
+
+Remove that tool and the level drops on its own. This makes it impossible to under-grant, which is the failure that is hardest to diagnose: an agent that looks configured correctly and is refused at runtime.
+
+### When an agent already has a level
+
+An agent authored outside Studio — by the CLI, or by hand — may already carry a level. Studio keeps it and does not overwrite it in either direction, because raising it would widen what the agent can reach and lowering it would remove something its author chose.
+
+Where that level is below what the tools need, some of them will be refused. Studio says which level they need and offers a button to move the agent to it, so the decision stays yours but is one click away.
+
+### When Studio cannot tell
+
+If none of the selected tools have been classified, there is nothing to work from and Studio does not guess. Classify them in [Tools](/platform/tools/classifying-tools), or the agent will be refused wherever authorization is enforced.
+
+## Restricting an agent further
+
+Under the tools step, **Restrict this agent further** holds an agent below what its tools allow — useful when one agent should only read from a connection that others write to.
+
+Pick the highest level the agent may use. Tools above it become unreachable; the rest keep working. Capping an agent at Reader on a connection that also exposes writes leaves it able to read and refused on the writes, and the capability card names which ones.
+
+Choosing the top level is the same as no restriction. A restriction can only ever narrow — the platform intersects it with what each tool grants rather than replacing it, so it can never hand the agent something the classification did not.
+
+## Reading the platform docs
+
+Studio, the platform documentation, the `alquimia` CLI and the runtime logs all use the same three names, so a refusal you go and look up is described in the words Studio showed you.
+
+There is a fourth level upstream, `system`. It is reserved for the platform itself and cannot be given to an agent.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Classifying tools" icon="shield" href="/platform/tools/classifying-tools">
+    Decide how dangerous each tool on a connection is.
+  </Card>
+  <Card title="Authorization policies" icon="book" href="https://docs.alquimia.ai/security/authorization-policies">
+    The platform reference for the full model.
+  </Card>
+</Columns>
