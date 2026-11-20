@@ -1,0 +1,137 @@
+---
+title: "Shields"
+description: "Screen user messages before they reach the main agent, and the agent's own responses before anyone sees them."
+---
+
+The **Shields** tab of an agent holds two policies that share the same registered shields:
+
+- [Input shields](#input-shields) run before the main agent sees a user message. Use them to enforce safety policies, classify intent, or apply deterministic rules, without changing the main agent's logic.
+- [Output shields](#output-shields) screen what the agent says, before it is recorded, streamed or spoken.
+
+<Note>
+  This tab used to be called **Pre-processor**. Links that open it with `?tab=pre-processor`
+  still work.
+</Note>
+
+{/* screenshot: agent-creation-shields-tab */}
+
+## Input shields
+
+### Sentinels
+
+Sentinels are mini-agents that evaluate the incoming message using an LLM. They can block, tag, or transform the request based on their classification.
+
+Select one or more Sentinels from those registered under [Shields](/platform/settings/sentinels).
+
+Every selected sentinel evaluates the message, and each one's verdict is published under its own name for empathy rules to read.
+
+Common sentinel use cases:
+- Flag off-topic or harmful inputs before the agent answers
+- Classify intent and tag the request for downstream logic
+- Detect language and route accordingly
+
+### Per-agent policy
+
+Under each selected shield, set what **this agent** does with its verdict. Another agent can run
+the same shield with a different policy.
+
+| Field | Effect |
+|-------|--------|
+| **Action** | **Observe** logs the verdict (default). **Flag** raises an alert and lets the message through. **Block** refuses the message before it reaches the agent. **End call** hangs up a live voice call. |
+| **Threshold** | The score at or above which the action fires (0–1). |
+| **Label** | Classifier shields only: only this label's score counts. **Any label** lets any label trigger. |
+| **Fail closed** | Treat a shield error or timeout as a block instead of letting the message through. |
+| **Refusal message** | Block and End call only: replaces the default refusal text. |
+
+<Note>
+  With **Observe**, a shield records its verdict but does not refuse the request. Either set
+  **Block**, or pair it with an empathy rule that overrides the answer.
+</Note>
+
+### Empathy Rules
+
+Empathy Rules decide what to do with a sentinel's verdict. They are expressions evaluated without an LLM call, against the output each sentinel published, so they cost nothing to run.
+
+{/* screenshot: empathy-rules-builder */}
+
+Each rule consists of:
+- **Required Sentinels** — one or more of the agent's sentinels. The rule runs only once every one of them has published a verdict.
+- **Conditions** — an expression over the output of the required sentinels, each referenced by its key. Each condition row picks which sentinel it tests. The key is the sentinel's name with every character other than letters, digits and `_` replaced by `_`, because conditions are Python expressions: `Toxicity Guard` and `toxicity-guard` become `Toxicity_Guard` and `toxicity_guard`.
+- **Strategy** — what happens when the conditions match:
+  - **None** — evaluate the conditions but leave the answer alone. Use it to record a match.
+  - **Override** — reply with a fixed message instead of the model's answer.
+  - **Merge** — blend the sentinel's response into the model's. Studio has no editor for the merge payload yet.
+
+Rules are evaluated top to bottom and **the first match wins** — later rules are skipped. Order the specific ones above the general ones.
+
+<Warning>
+  An Override rule needs its message filled in, and Merge has no response Studio can author
+  yet. A rule missing its response is dropped when you save the agent, because the runtime
+  rejects the whole agent otherwise.
+</Warning>
+
+<Tip>
+  Have the sentinel return a small structured verdict — a boolean or a short label — rather
+  than prose. Conditions are exact comparisons, so `is_toxic == True` is dependable in a way
+  that matching against a sentence is not. Set the shape under **Structured Output** on the
+  sentinel.
+</Tip>
+
+### Combining sentinels and empathy rules
+
+The two work as one pipeline rather than independently:
+
+1. **Sentinels** run and publish a verdict under each sentinel's name.
+2. **Empathy Rules** read those verdicts and decide whether to replace the answer.
+3. **Main agent** answers, unless a rule overrode it.
+
+So empathy rules are how a sentinel's verdict reaches the user. A sentinel with no rule reading it still runs, and its verdict is recorded for observability, but the conversation is unaffected.
+
+## Output shields
+
+Output shields screen every response the model generates, before it is recorded, streamed,
+saved to the conversation or spoken on a voice call. They use the same shields registered under
+[Shields](/platform/settings/sentinels) as sentinels, and each has its own per-agent policy.
+
+Pick them under **Output shields**, below the input shields. The policy fields are the ones in
+[Per-agent policy](#per-agent-policy), with these differences:
+
+- **Block** replaces the response with the refusal message and ends the turn. No further tool
+  calls run.
+- **Flag** and **Observe** record a verdict and let the response through.
+- A new output shield starts as **Observe**, and Studio shows an *Observe only* warning on it
+  until you change the action. It is not blocking by default because, without a **Label**, a
+  block fires on any label at or above the threshold, including a classifier's "safe" label,
+  and would refuse ordinary replies. To protect responses, choose **Block**, pick the label that
+  means unsafe, and usually turn on **Fail closed**.
+- **End call** is not available. A specification that sets it on an output shield is saved as
+  **Block**.
+
+Empathy rules do not read output shields: they run before the model answers.
+
+<Tip>
+  A fast, non-generative shield such as [System One](/platform/settings/sentinels#system-one)
+  keeps the added latency low. Every response waits for its output shields before the user sees
+  any of it.
+</Tip>
+
+<Note>
+  Output shields need runtime `0.7.4` or later (core `0.7.6`). The runtime screens the response
+  in the worker, so a blocked response never reaches the event stream or the stored session.
+</Note>
+
+Output shields Studio cannot edit, such as an inline connector written by the CLI, or a
+reference to a shield this workspace does not have, are not shown. They are saved back unchanged.
+Each output shield also keeps the key it was saved under in the agent specification, so a key
+chosen outside Studio does not change when you save.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Shields" icon="shield" href="/platform/settings/sentinels">
+    Create and configure sentinels before assigning them here.
+  </Card>
+  <Card title="Memory" icon="brain" href="/platform/agent-creation/memory">
+    Configure conversation memory for the agent.
+  </Card>
+</CardGroup>
