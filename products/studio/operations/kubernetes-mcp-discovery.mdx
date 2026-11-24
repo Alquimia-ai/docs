@@ -1,0 +1,174 @@
+---
+title: "Cluster MCP discovery"
+description: "Label MCP servers deployed in Kubernetes so Studio can list them and register them in a workspace."
+---
+
+Studio can find MCP servers your platform team has already deployed in the cluster. It lists Kubernetes **Services** that carry the labels below, shows the ones labelled for the current workspace, and lets an editor register one in a click. A registered server becomes an ordinary MCP server: it appears on the [Tools](/platform/tools/overview) page and agents select it under [MCP Tools](/platform/agent-creation/mcp-tools).
+
+Users find discovered servers in two places:
+
+- **Tools › Add tool › From the cluster**.
+- **Discover › Cluster MCP** (`/dashboard/discover?tab=cluster-mcp`) — servers labelled for the workspace that are not registered yet.
+
+Both are hidden when the feature is off.
+
+## Enable it
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `K8S_BRIDGE_ENABLED` | `on` | Lets Studio talk to a Kubernetes API at all. |
+| `K8S_MCP_DISCOVERY_ENABLED` | `on` | Turns on cluster MCP discovery. |
+| `K8S_MCP_NAMESPACES` | `mcp,tools` | Comma-separated namespaces to search. Leave empty to search the whole cluster, which needs a ClusterRole. |
+| `K8S_CLUSTER_DOMAIN` | `svc.cluster.local` | DNS suffix used to build in-cluster URLs. Change it only if your cluster uses a different one. |
+| `K8S_KUBECONFIG` | path or base64 | Optional. Without it Studio uses its in-cluster ServiceAccount (IRSA on EKS). |
+| `K8S_CONTEXT` | context name | Optional. Context to use from `K8S_KUBECONFIG`. |
+
+Flags are off unless set to exactly `on`.
+
+## Label contract
+
+Put these on the **Service** that fronts the MCP server.
+
+### Labels
+
+| Label | Required | Value |
+|-------|----------|-------|
+| `alquimia.ai/mcp-server` | Yes | `true` |
+| `alquimia.ai/agentspace` | Yes | The workspace allowed to use the server, or `shared` for every workspace |
+| `alquimia.ai/mcp-name` | No | Display name in Studio. Defaults to the Service name |
+| `alquimia.ai/mcp-transport` | No | `streamable-http` (default) or `sse` |
+| `alquimia.ai/mcp-version` | No | Version shown in Studio. Defaults to `app.kubernetes.io/version` |
+
+Studio also shows the Kubernetes recommended labels `app.kubernetes.io/version`, `app.kubernetes.io/part-of` and `app.kubernetes.io/managed-by`, plus the namespace and when the Service was created. Set them so people can tell servers apart.
+
+<Warning>
+  A Service without `alquimia.ai/agentspace` is never listed. Discovery fails closed: a server is only visible to the workspace it names, or to everyone when it says `shared`.
+</Warning>
+
+The workspace value is the workspace id itself when the id is already a valid label value: up to 63 letters, digits, `-`, `_` or `.`, starting and ending with a letter or digit. Studio maps any other id to `<sanitized-id>-<hash>`, where the hash is 12 hex characters computed from the exact id. This keeps two workspaces apart even when their ids differ only in characters a label cannot hold, for example `acme_corp` and `acme@corp`. The default workspace `_default` starts with `_`, so its label value is `default-<hash>` and not `default`. The value `shared` is reserved for "every workspace", so a workspace whose id is literally `shared` also gets the hashed form.
+
+<Tip>
+  Give workspaces ids that are valid label values, so the label is the id. For any other id, copy the value from the `alquimia.ai/agentspace` label of a trial Job of that workspace (`kubectl get jobs -L alquimia.ai/agentspace`), or ask a Studio admin.
+</Tip>
+
+### Annotations
+
+| Annotation | Purpose |
+|------------|---------|
+| `alquimia.ai/mcp-path` | Endpoint path. Defaults to `/mcp` for `streamable-http` and `/sse` for `sse` |
+| `alquimia.ai/mcp-port` | Port number or port name. Defaults to the port named `mcp`, then `http`, then the first port |
+| `alquimia.ai/mcp-url` | Full in-cluster URL. Overrides port and path. The host must be `<service>.<namespace>.svc` or `<service>.<namespace>.<K8S_CLUSTER_DOMAIN>` |
+| `alquimia.ai/mcp-description` | Description shown in Studio |
+| `alquimia.ai/mcp-secret-ref` | A key the runtime vault already holds. Used as the server's credential `$secretRef` as is |
+| `alquimia.ai/mcp-auth-secret` | `<secret-name>/<key>` of a Kubernetes Secret in the same namespace. Studio reads it when the server is registered and stores the value in the workspace vault |
+
+Without `alquimia.ai/mcp-url`, Studio registers `http://<service>.<namespace>.<K8S_CLUSTER_DOMAIN>:<port><path>`. The runtime must be able to reach that address.
+
+Studio refuses an `alquimia.ai/mcp-url` that points outside the cluster: an external host, an IP address (including cloud metadata addresses such as `169.254.169.254`), the short `<service>.<namespace>` form, or a URL with credentials in it. Otherwise anyone who can annotate a labelled Service could choose where the runtime connects. Studio lists such a server with an error and does not register it. To reach a server outside the cluster, register it as a regular MCP server in Studio.
+
+The credential value is sent as `Authorization`. A bare token is sent as `Bearer <token>`; a value that already names a scheme is sent as is. If both credential annotations are set, the vault reference wins.
+
+### What Studio reports
+
+Studio checks each Service and shows problems next to it instead of hiding it:
+
+- **Errors** block registration: an unsupported transport, a port that is not a number or a port name on the Service, a Service with no ports and no URL, a URL that is not `http(s)`, or a malformed credential annotation.
+- **Warnings** are fallbacks Studio applied: no `mcp-name`, a path without a leading `/`, several ports and none named `mcp` or `http`.
+
+When Studio can list pods, it also shows how many pods behind the Service are ready.
+
+Studio never shows the in-cluster address. People pick a server by its name, description and labels, and the address stays on the server side: Studio works it out again from the Service when the server is registered.
+
+## Example
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: linear-mcp
+  namespace: mcp
+  labels:
+    app: linear-mcp
+    alquimia.ai/mcp-server: "true"
+    alquimia.ai/mcp-name: linear
+    alquimia.ai/agentspace: team-sales
+    alquimia.ai/mcp-transport: streamable-http
+  annotations:
+    alquimia.ai/mcp-description: "Linear issues and projects"
+    alquimia.ai/mcp-path: /mcp
+    alquimia.ai/mcp-auth-secret: linear-mcp-credentials/token
+spec:
+  selector:
+    app: linear-mcp
+  ports:
+    - name: mcp
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: linear-mcp-credentials
+  namespace: mcp
+type: Opaque
+stringData:
+  token: lin_api_xxxxxxxx
+```
+
+Sealed Secrets work the same way: Studio reads the `Secret` the controller unseals.
+
+## RBAC
+
+Studio only reads. Give its ServiceAccount:
+
+- `list` on `services` and `pods` in each namespace in `K8S_MCP_NAMESPACES`;
+- `get` on `secrets`, limited with `resourceNames` to the Secrets named in `alquimia.ai/mcp-auth-secret`. Never grant a blanket `get` on Secrets.
+
+A sample is in the Studio repository at `deploy/k8s/mcp-discovery-rbac.yaml`:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: alquimia-studio-mcp-discovery
+  namespace: mcp
+rules:
+  - apiGroups: [""]
+    resources: ["services", "pods"]
+    verbs: ["list"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["linear-mcp-credentials"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: alquimia-studio-mcp-discovery
+  namespace: mcp
+subjects:
+  - kind: ServiceAccount
+    name: alquimia-studio
+    namespace: alquimia
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: alquimia-studio-mcp-discovery
+```
+
+Create one Role and RoleBinding per namespace. When a namespace denies Studio, the others still list. To search the whole cluster, leave `K8S_MCP_NAMESPACES` empty and bind a ClusterRole with the same `list` rules instead. Keep Secret access out of the ClusterRole: grant `get` on the named Secrets with a Role and RoleBinding in each namespace that has annotated Services (the sample file has a commented example).
+
+## Who can do what
+
+| Action | Role |
+|--------|------|
+| See discovered servers | Any workspace member |
+| Register a server | Editor and above, the same as adding an MCP server by URL |
+
+Registration re-reads the Service on the server, so the URL and credential always come from the cluster, never from the browser. The browser is told only whether a server needs a credential, never which Secret holds it. Studio records which Service a server came from in its registration id, which no edit can change; that is how it finds the address and credential again when you list the server's tools. Once registered, classify the server's operations on the [Tools](/platform/tools/classifying-tools) page like any other MCP server.
+
+## Next steps
+
+<Card title="MCP Servers" icon="plug" href="/platform/tools/mcp-servers">
+  How registered MCP servers work in Studio.
+</Card>

@@ -1,0 +1,101 @@
+---
+title: "Knowledge bases"
+description: "Choose which of the workspace's knowledge bases an agent consumes, and how it searches each one."
+---
+
+A knowledge base is a set of documents registered in the workspace and maintained in [Knowledge](/platform/knowledge/overview). Agents do not own knowledge bases. An agent references the ones it should use, and several agents can share the same knowledge base.
+
+The agent's **Knowledge** step chooses which knowledge bases the agent consumes and how it searches each one. Uploading documents, setting who may read them, and deleting a knowledge base all happen in Knowledge.
+
+{/* screenshot: agent-creation-knowledge-tab */}
+
+## Knowledge bases or a Brain?
+
+The Knowledge step lists both kinds of source together. An agent can use any number of knowledge bases and any number of Brains at the same time, each with its own settings.
+
+| | Knowledge bases | [Brain](/platform/agent-creation/brains) |
+|---|---|---|
+| **What it is** | Documents your workspace curates | A versioned, signed artifact someone publishes |
+| **How the agent gets it** | Retrieved passages, a search tool, or direct file reads | A search tool that returns verified blocks |
+| **Versioning** | None. The knowledge base is whatever it holds now. | Pinned to a version you register |
+| **What you choose here** | Which knowledge bases, and how to search each | Which Brain, which memory modules, how many results |
+
+Each knowledge base and each Brain can be attached to an agent once.
+
+## Attach knowledge bases
+
+1. Open the agent's **Knowledge** step.
+2. Pick a knowledge base from **Add knowledge…** and click **Add**. Repeat for each one the agent should use. The same list offers the workspace's Brains.
+3. Save the agent.
+
+If the workspace has none yet, click **Create a knowledge base**. It opens Knowledge with the create dialog.
+
+Each attached knowledge base shows its document count and an access badge. Click its name to open it in Knowledge.
+
+<Warning>
+  Studio flags a knowledge base this agent cannot actually read:
+  - **Not granted**: the knowledge base's access policy does not include the agent's level, so its searches are refused. An agent with no level is saved as Reader.
+  - **Missing knowledge base**: the agent points at a knowledge base that is no longer registered in the workspace, so its searches are refused. Remove it, or attach a registered knowledge base instead.
+</Warning>
+
+### Agents that point at a raw collection
+
+An agent always references a registered knowledge base, never a document collection directly. An older agent whose spec names only a collection loads without that entry, and saving it removes the entry. Register the documents as a knowledge base in Knowledge and attach it.
+
+## How the agent searches
+
+Expand **How this agent searches it** under each knowledge base.
+
+### Mode
+
+| Mode | What happens |
+|------|-------------|
+| **Always retrieve** | Relevant passages are retrieved for every message and added to the prompt |
+| **Search when needed** | The agent gets a search tool and decides when to use it |
+| **Read files directly** | The agent lists and reads the knowledge base's files, with no vector search. |
+
+**Search when needed** and **Read files directly** are tools, so Studio switches the agent to the tools strategy when you choose one.
+
+### Retrieval
+
+| Option | Description |
+|--------|-------------|
+| **Semantic (dense)** | Embeddings only. The default. |
+| **Hybrid** | Combines embeddings with keyword (BM25) search. Only the number of results applies; search type and its parameters are ignored. |
+
+### Search type and parameters
+
+| Type | Description | Parameters |
+|------|-------------|-----------|
+| **Similarity** | The most semantically similar passages | Results (k) |
+| **MMR** | Balances relevance with diversity | Results (k), candidates (fetch k), diversity (lambda: 0 = most diverse, 1 = most relevant) |
+| **Similarity above a score** | Similar passages above a minimum score | Results (k), minimum score (0–1) |
+
+**Metadata filter** is an optional JSON object matched against document metadata, for example `{"lang": "en"}`.
+
+### Read limits
+
+| Mode | Field | Default |
+|------|-------|---------|
+| **Always retrieve**, **Search when needed** | **Max characters per passage**: longer passages are truncated before they reach the prompt | No limit |
+| **Read files directly** | **Max characters per file read**: larger files are returned in pages | 8192, or the deployment's setting |
+| **Read files directly** | **Max files per listing**: larger knowledge bases are listed in pages | 20, or the deployment's setting |
+
+When a file or listing is paged, the agent asks for the next page itself.
+
+<Tip>
+  Start with **Always retrieve**, **Similarity** and 4 results. Use **Try it** on the knowledge base in Knowledge to see what a question returns before tuning.
+</Tip>
+
+Fields Studio does not edit, such as a knowledge base's isolation or document template, are kept as they are when you save.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Knowledge" icon="book-open" href="/platform/knowledge/overview">
+    Create knowledge bases, add documents and set who may read them.
+  </Card>
+  <Card title="Brains" icon="hexagon" href="/platform/agent-creation/brains">
+    Attach a versioned, signed knowledge artifact instead.
+  </Card>
+</CardGroup>
