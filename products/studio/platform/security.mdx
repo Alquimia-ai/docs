@@ -1,0 +1,50 @@
+---
+title: "Security"
+description: "Secrets, per-user credentials and network egress for a workspace."
+---
+
+The security controls gather what is not about a single tool or knowledge base: **Secrets** in the sidebar, with **My credentials** as its second tab, and the **Network egress** tab of **Settings**. Tool permissions live in [Tools](/platform/tools/overview); knowledge access policies in Knowledge.
+
+{/* screenshot: security-page */}
+
+## Secrets
+
+Every secret of the workspace:
+
+- registered definitions,
+- keys agents use through a [platform default](/core-concepts/secrets#platform-default-keys) without a registered definition (**Not registered**), and
+- for each, the agents that use it — directly or through the model, tool, voice provider or shield they reference — and whether it [resolves](/core-concepts/secrets#resolution-status) for them.
+
+| Badge | Meaning |
+|-------|---------|
+| **Platform default** | A key the platform's own fields use. |
+| **Required** | An agent fails to run without a value. |
+| **Per user** | Users may hold their own values. |
+| **Unused** | No agent or registration references it. Publishing refuses unused definitions. |
+
+**Add secret** registers a definition together with its first value. Model, tool, shield and voice forms either reference an existing secret as it is, or define a new one and take its value right there when it is a **Workspace** or **Deployment** secret without per-user values. They never overwrite an existing secret's value. An **Agent** value is set in that agent's **Secrets** section; a per-user value under My credentials. Pick a platform default key from the suggestions when one fits; its scope, type and `required` flag come from the platform and cannot be changed. For an **Agent**-scoped secret, choose the agent the value belongs to.
+
+**Set value** (pencil) replaces a value. It keeps the secret's definition as registered. **Delete** removes the definition and every stored value.
+
+An **Agent** or **User scoped** secret can be defined without a value: its values are set later, per agent or per user.
+
+**Edit definition** (sliders icon) changes where a secret's value lives or whether it is user scoped. Values stored under the previous definition stop being read. Platform default keys cannot be re-defined.
+
+<Note>Who can add, change or delete each kind of secret is in [Who can change what](/core-concepts/secrets#who-can-change-what). Viewers see the list and statuses.</Note>
+
+## My credentials
+
+The second tab of **Secrets**; the user menu, top right, links to it too. Your own values of per-user secrets. Your chats use your value — never someone else's, and never the workspace default. If you remove your value, agents that use the secret fail for you until you set it again.
+
+Anyone can manage their own credentials. A secret appears here once an editor enables **Per-user values** on it.
+
+## Network egress
+
+The hosts the workspace's model and tool connectors may reach.
+
+- Empty: no restriction.
+- Exact hosts (`api.example.com`), subdomain wildcards (`*.example.com` — not `example.com` itself), or `*`.
+
+Explicit base URLs and tool endpoints are checked; a provider's own default endpoint is not. The **Destinations** table shows how the list — including unsaved edits — treats every endpoint registered in the workspace. Endpoints stored as secrets are checked by the runtime when the connector is built.
+
+<Warning>Only platform admins can change the allow-list. It is a guardrail on the workspace itself.</Warning>

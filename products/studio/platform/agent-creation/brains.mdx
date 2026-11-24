@@ -1,0 +1,130 @@
+---
+title: "Brains"
+description: "Attach a versioned, signed knowledge artifact that your agent queries as a tool."
+---
+
+A Brain is a packaged body of knowledge, curated outside Studio, published as a signed artifact and pinned to a version. Your agent does not read a Brain the way it reads your documents: it calls a search tool and receives verified knowledge blocks with their provenance, and then writes its own answer from them.
+
+That difference matters. A Brain conserves, validates and returns knowledge; the model processes and uses it. The Brain never writes the answer.
+
+{/* screenshot: agent-creation-knowledge-fork */}
+
+## Knowledge bases or a Brain?
+
+An agent can use both, and as many of each as it needs.
+
+| | [Knowledge bases](/platform/agent-creation/documents) | Brain |
+|---|---|---|
+| **Who owns the content** | Your workspace. Curated in [Knowledge](/platform/knowledge/overview) and shared by any agent. | Its publisher. You subscribe to a published artifact. |
+| **How the agent gets it** | Retrieved passages in the prompt, a search tool, or direct file reads. | The agent calls a search tool and receives verified blocks. |
+| **What comes back** | Text chunks. | Knowledge blocks with their provenance and a retrieval score. |
+| **Versioning** | None — a knowledge base is whatever it holds now. | Pinned to a version you choose. |
+| **What you control** | Which knowledge bases, and how the agent searches each. | Which memory modules the agent may read. |
+
+## Prerequisites
+
+A Brain must be registered in your workspace before an agent can use it. Registration happens on the [Discover](/platform/discover) page, under the **Brains** tab, where you also choose the version and which memory modules agents may read.
+
+Brains are built and published with the Alquimia CLI, not in Studio. The protocol requires that a model propose knowledge blocks and the protocol validate and commit them, so an ingestion screen in Studio would sit on the wrong side of that gate.
+
+## Memory modules
+
+A Brain is organized into modules, each answering a different kind of question. Access is granted per module rather than per Brain, because they are not equivalent in sensitivity.
+
+| Module | What it holds |
+|--------|---------------|
+| **Semantic** | Settled facts and concepts. What the brain knows to be true. |
+| **Procedural** | Steps, policies and how-to knowledge. How something is done. |
+| **Episodic** | Specific events in time. What happened, and when. |
+| **Canonical** | Raw observed evidence, unprocessed. The source material behind the other modules. |
+| **Provenance** | The audit ledger: who asserted what, when, and on what basis. |
+
+<Warning>
+  `Canonical` and `Provenance` expose raw source evidence and the audit trail. Withhold them unless an agent genuinely needs them — that asymmetry is why the access policy is per module in the first place.
+</Warning>
+
+A module with no grant is denied outright. There is no Brain-wide fallback.
+
+## Attaching a Brain to an agent
+
+Open the agent's **Tools** step and tick the Brain under **Brains**, below the MCP servers. Repeat for each Brain the agent should use; each one can be attached once. An attached Brain opens as a card: expand **What this agent reads from it** to tune it, or remove it with **×**. The **Knowledge** step lists knowledge bases only, and notes how many Brains the agent reads with a link to **Tools**.
+
+{/* screenshot: agent-creation-knowledge-pod */}
+
+| Field | Description |
+|-------|-------------|
+| **Memory modules** | The modules granted to this workspace. Uncheck one to narrow what *this* agent reads. An agent can never read more than the workspace grant allows. |
+| **Results per query** | How many verified blocks each search returns. |
+| **When to use this Brain** | Shown to the model. This text is spliced into the search tool's description and is how the agent decides when to consult the Brain. Up to 3000 characters. |
+
+Each Brain adds its own search tool to the agent and switches its evaluation strategy to a tool-capable one, since a tool that is never offered is a tool the model cannot use. Which tool depends on how your deployment serves Brains: a `brain-search-<brain>` tool from the runtime, or the Brain's MCP tools when [Brains are connected as MCP servers](#brains-as-mcp-servers).
+
+<Note>
+  Module grants are workspace-level. Changing them from an agent would silently change every other agent using the same Brain, so the panel only lets you narrow for this agent. To change the grant itself, go to Discover.
+</Note>
+
+## Brains as MCP servers
+
+When your deployment runs a Brains MCP server, every Brain an agent uses is connected through its own MCP endpoint instead of the runtime's built-in search. Nothing changes in how you pick a Brain: you tick it under **Brains** in the agent's **Tools** step. A Brain registered as a workspace MCP server is listed there too, and not among the other MCP servers, so each Brain appears once.
+
+Each Brain is served at its own Streamable HTTP endpoint and exposes three read-only tools:
+
+| Tool | What it does |
+|------|--------------|
+| `brain_search` | Searches the Brain and returns verified blocks. |
+| `brain_read_block` | Returns one block by ID. |
+| `brain_resolve` | Returns the Brain's manifest, digest, modules and signature status. |
+
+There is no listing and no writing over MCP.
+
+When you save the agent, Studio replaces each Brain's knowledge-base entry with an MCP tool connection pointing at that Brain's endpoint. The memory modules, results per query and **When to use this Brain** text travel with the connection, and the agent opens with the same Brains next time you edit it. If a Brain's endpoint can't be resolved when you save (for example, the catalog is unreachable), that Brain stays a knowledge base until the next save, and the rest of the agent saves normally.
+
+### Adding a Brain to Tools
+
+With a Brains MCP server configured, **Add tool** on the Tools page offers **Brain**, and so does **Add a Brain** under an agent's **Brains**. It registers a Brain's endpoint as a workspace MCP server, so you can list and classify its tools like any other server. With zero trust on, if you don't classify them yourself, Studio registers the three tools as read-only. Studio recognizes the server as a Brain by the `(Brain: <reference>)` tag at the end of its description; the tag is hidden in the tool's panel, and its connection is derived from the Brain, so there is no URL to edit. Listing its tools to classify them never asks for an address.
+
+<Note>
+  If an agent already uses a Brain through a workspace MCP server, Studio doesn't add a second connection for the same Brain when you save.
+</Note>
+
+### Configuration
+
+Your platform team configures this with environment variables on Studio:
+
+| Variable | Description |
+|----------|-------------|
+| `BRAINS_MCP_BASE_URL` | Base URL of the Brains MCP server. Each Brain is served at `<base>/mcp/<reference>:<tag>`. Setting it connects every Brain through MCP. |
+| `BRAINS_MCP_AUTH_SECRET_REF` | Optional. The vault secret holding the credential the runtime presents to the Brains MCP server. |
+| `GAUSSIA_BRAINS_API_URL` | Optional. Lists Brains from a Gaussia catalog instead of the workspace's registered Brains. If `BRAINS_MCP_BASE_URL` isn't set, this URL is used as the MCP base too. |
+| `GAUSSIA_BRAINS_MCP_AUTH_SECRET_REF` | Used when `BRAINS_MCP_AUTH_SECRET_REF` isn't set. |
+
+If neither URL is set, Brains are consumed through the runtime's built-in search as described above.
+
+<Warning>
+  Brains as MCP servers need an alquimia-core that accepts `context` on MCP tool connections (the field that carries the Brain reference and modules). Core `0.7.4` rejects it, so saving an agent with a Brain fails until the runtime ships a core with that field. See [compatibility](/reference/compatibility).
+</Warning>
+
+To run the Brains MCP server in the same cluster, the `gaussia-brains-mcp-server` repository ships a kustomize base in `k8s/base`. With it, `BRAINS_MCP_BASE_URL` is `http://gaussia-brains-mcp-server.brains.svc.cluster.local:8000`. The runtime opens these connections, so allow that host in the workspace's egress allow-list if one is set.
+
+## What the agent receives
+
+Each search returns knowledge blocks, each carrying its provenance and a retrieval score — not prose, and not raw chunks. The agent can cite block IDs in its answer.
+
+The contract is soundness, not completeness: what comes back is verified against the installed snapshot, but a search is not a guarantee that everything relevant was found.
+
+The runtime also distinguishes "the Brain could not be consulted" from "the Brain found nothing". They are different results, and an agent should not answer from its own training as though the Brain had been searched.
+
+## Changing versions
+
+A Brain is pinned to the version selected when it was registered. Changing it applies to every agent using that Brain, and takes about six minutes to reach agents that already cached the previous version. See [Discover](/platform/discover) for the registration and version workflow.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Discover" icon="compass" href="/platform/discover">
+    Browse the Brain catalog, register a Brain, and manage its grants.
+  </Card>
+  <Card title="Knowledge bases" icon="book-open" href="/platform/agent-creation/documents">
+    Use the workspace's own documents instead of subscribing to a Brain.
+  </Card>
+</CardGroup>

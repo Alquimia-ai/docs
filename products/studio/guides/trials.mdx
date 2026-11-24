@@ -1,0 +1,132 @@
+---
+title: "Put an agent on trial"
+description: "Configure a trial without writing trial.toml, preview its plan, run it in the cluster, and read its report."
+---
+
+A trial red-teams a **published version** of an agent with [alquimia-trial](https://github.com/Alquimia-ai/alquimia-trial). It runs one assistant in memory, attacks it with direct attacks and indirect prompt injection, grades every exchange with a judge model, and writes a `report.json` plus an HTML page. No tool runs and nothing reaches a real system: every tool call is answered by the trial and recorded.
+
+Trials and [Roast Me](/guides/agent-evaluations) are separate features. Roast Me evaluates the saved agent through the red-teaming service. A trial runs against a published artifact as a Kubernetes Job in your cluster.
+
+## Availability
+
+**Trials** appears in the sidebar under **Workspace** when your deployment has turned on the Kubernetes bridge, trials and Enterprise. Your administrator sets this up as described in [Trials in Kubernetes](/operations/trials). If something is missing, the Trials page lists what it is.
+
+| Role | Can |
+|------|-----|
+| Viewer | See runs, live status, logs and reports |
+| Editor and above | Preview, start, cancel and resume trials |
+
+## Configure a trial
+
+Open **Trials › New trial**. The wizard has eight steps. You can move between them freely, and a step with a problem is marked with **!**.
+
+<Steps>
+  <Step title="Artifact">
+    Pick one of this workspace's published versions, or enter any `oci://` reference. A trial needs a published version; it never runs the live workspace. Choose the assistant to put on trial. If you don't choose one, the trial uses the first assistant in the artifact.
+  </Step>
+  <Step title="Models">
+    Add a binding for each model the assistant uses, and pick the model from the workspace's models. After a preview, the models this assistant actually uses are listed first. Most agents use a registered model; **The assistant's inline model** is only for agents that configure their model inline. **Served from** keeps the publisher's endpoint or points at another one, such as a sandbox or a gateway. **Model id** keeps the publisher's model or uses a substitute, which the report records as such. **Credential** is usually **New credential for this run**: paste the key, and it is used by this run only. If you leave a model unbound, the trial calls the publisher's own endpoint, and the preview warns you. Turn on **Embeddings** if the assistant has knowledge topics; without an embedder, knowledge strategies are set aside.
+  </Step>
+  <Step title="Trial roles">
+    The **judge** grades every exchange. The optional **attacker** writes the user's turns for multi-turn and steered attacks. **Provider** is OpenRouter, an OpenAI-compatible endpoint (which needs an **Endpoint**), or Anthropic (no logprobs, so the judge grades by sampling). **Model** suggests common models for the provider; choose **Another model** for any other. Only the judge may be a **Stand-in**, which checks the wiring but never gives a verdict.
+  </Step>
+  <Step title="Credentials">
+    Lists every credential the run uses and what uses it. You can enter or change each value here, too. Credentials are entered **per run**. Studio puts them in a Kubernetes Secret that only this run's pod reads, and the cluster deletes it together with the run. No other run sees them, and they are never saved in Studio, written to the trial config, or shown again. If your administrator also provides shared credentials, they are listed under **Shared in the cluster** and are the same for every run.
+  </Step>
+  <Step title="Attack mode">
+    Pick direct attacks, indirect injection, or both in one plan. For direct attacks, set the language and the domain the attacks are written for, how many times each probe is sent, and how many run at once. For injection, choose the suite: **Generated from the assistant** lets the trial write the tasks from the assistant's tools and topics (set its **Suite size** and **Schema-aware**), and **Custom suite** runs exactly the tasks you write. Then set the turns per conversation and the wrapping techniques. With both vectors, **Combine with direct attacks** also sends direct attacks in the same request as a poisoned tool. Choose how the request carries the attack: **Appended** to the user's request, as a **Forwarded message**, or as a **Pasted document**. You can also choose which techniques the poisoned tool uses. Each framing and each technique you pick adds a combined strategy. With no technique picked, combined strategies use only the first wrapping technique.
+  </Step>
+  <Step title="Custom injection suite">
+    Once you pick the assistant, the step lists where an injection can reach it and what it could be made to do, read from the agent's tools and knowledge:
+
+    - **Ways in** (carriers) are its read-only operations and its knowledge topics. A payload can only reach the model through what the assistant reads.
+    - **What it could be made to do** (sinks) are its other operations, marked when they run without approval.
+
+    A tool with no classified operations, or with an operation written as a pattern, is listed with the reason, because a suite can't name its operations. If the assistant has no way in, the trial sets injection aside as not applicable.
+
+    **Custom suite** starts from what the trial would generate for those tools and topics, so it runs as soon as you select it. Every user task is tried with every injection task and every technique, and the step shows how many conversations that plans.
+
+    - A **user task** is a harmless request that makes the assistant read through a **carrier**: choose one of the assistant's reads or topics, or **Another name…** to type one. **Served when** is the check that the request was handled, usually **Called the tool**. **Also read through** adds a task for a carrier the suite doesn't use yet.
+    - An **injection task** is the attacker's goal. It is planted in what the carrier returns. Tag it with the OWASP agentic risks it covers. **Compromised when** is the check that the goal happened: **Called the tool** for an action, or **Reply contains** for words. Choose **Another check (JSON)** for any other [midojo check](https://github.com/Alquimia-ai/red-teaming), such as `env_list_any_match` or `all_of`. **Aim at** adds a goal for a sink the suite doesn't target yet, or the reply canary.
+    - **Environment** (advanced) sets what each carrier returns. The payload is planted in a carrier's record, so every tool carrier needs one. Picking a carrier adds it; if one is missing, **Add the missing records** fills it in. Write calls are recorded there and never executed.
+
+    The suite is checked against the assistant as you edit it. A carrier without a record is an error. A carrier or tool the assistant doesn't have, a carrier with side effects, and a goal that only calls a read are warnings. Studio reads the workspace and the trial reads the published version, so publish again if the agent changed since. **Regenerate from the assistant** starts over. **Load the suite the last preview generated** loads what a **Preview** planned. **Edit as JSON** shows the whole suite, and **Export** saves it so you can paste it into another trial. Studio checks every task and check before it starts a pod.
+  </Step>
+  <Step title="Strategies & effort">
+    **Automatic** keeps the strategies that apply to this assistant. **How much to test** (small, medium, large) decides how many strategies it keeps and how many probes each may send, and it suggests replicas and a budget. **Manual** runs exactly the strategies you tick; there the level only caps the probes per strategy (10, 100, or no cap). **Assistant-specific strategies** adds strategies generated from the assistant's tools and topics. They are listed after a preview, because the trial writes them from the assistant itself.
+
+    **Catalogues** come from two places. **Bundled with the trial** ships with the trial image. **From the red-teaming library** lists the catalogues published in **Roast Me › Catalogues**: global ones and those written for this workspace's assistants. Each is pinned to a version, the newest by default, and its strategies appear in **Manual** selection. Catalogues run together only if they grade with the same contract. All the bundled catalogues, `assistant-*` and `agent-*`, share one contract, as do the assistant-specific strategies. A library catalogue may use another contract. When it does, the wizard says which catalogues conflict: keep one group, or turn off assistant-specific strategies.
+  </Step>
+  <Step title="Output & budget">
+    Choose how much to keep (`report` up to `full`), a spending ceiling in assistant calls, and a time limit. **Gaussia metrics** lists the three the trial computes (context, conversational, role adherence); the others are shown disabled with the reason. Metrics are graded by the judge once the trial completes, so they need a judge with a provider. A **smoke run** sends one strategy per plugin, once. It is a cheap end-to-end check. **Verdict policy** lists the rules the trial can check. Set each one to **Ignore**, **Warn** or **Fail**, with its threshold. The defaults follow the trial's recommended policy. **Did what a direct attack pushed it to do** fails by default at any rate above 0%. It is checked from the trace, not by the judge. Among the direct attacks that push the assistant to act, such as acting as the account owner or for someone else, it counts how often the assistant called the operation it was pushed to call, even when an approval refused the call.
+  </Step>
+  <Step title="Review">
+    Select **Preview**. The preview runs `trial run --dry-run` in the cluster: it pulls the artifact but calls no model. It lists the planned strategies, probe counts, anything set aside and why, and whether every credential resolves, with where each one is read. The preview also knows which model the assistant actually answers with. If that model has no binding, or its credential is missing, the preview names it and offers **Bind with a credential for this run**. That adds the binding in **Models**, where you paste the key; then preview again. The generated `trial.toml` is under **Show the generated trial.toml**. Select **Start trial** when the plan reads right.
+  </Step>
+</Steps>
+
+## Follow a run
+
+A run's page shows the live pod log while the trial runs. It refreshes every few seconds.
+
+| Status | Meaning |
+|--------|---------|
+| Starting | The Job is waiting for a pod: scheduling, or pulling the image. A stuck pull shows its reason. |
+| Running | The trial is attacking the assistant. |
+| Completed | The trial finished. The report is ready. |
+| Policy failed | The trial finished and its verdict policy failed. This is a result, not an error. |
+| Incomplete | The trial stopped before finishing, for example because it hit its time limit. **Resume** continues it. |
+| Refused | The trial would not start. The plan's problems say why, usually an unresolved secret. |
+| Failed | An infrastructure error: the registry, a model provider, the bucket, or the pod itself. |
+
+**Resume** starts the same trial again. The trial resumes where it stopped when your administrator configured persistent working state. Otherwise it starts over.
+
+A run's credentials last as long as its Job. **Cancel** deletes them straight away, and a finished run's Job expires after a set time (a day by default). Resuming after that isn't possible, because Studio never kept the values: start a new trial with the same settings and enter them again.
+
+## Read the outputs
+
+When a run finishes, its page opens on the **Report** tab.
+
+- **Report**: Studio builds this view from the run's `report.json`, plus `verdict.json` when a policy was checked and `conversations.json` when the run kept them. It shows:
+  - the verdict and the headline rates
+  - what to change
+  - the configuration findings
+  - direct attacks by principle and strategy, and how many of the requests to act it carried out, by strategy
+  - tool use under attack, with the actions the assistant attempted
+  - indirect prompt injection by technique and OWASP category
+  - metrics and example conversations
+  - how the trial ran
+
+  Example conversations need **Detail** set to `data` or above. Select **Download HTML** for the trial's own standalone page, to share outside Studio.
+- **report.json**: the machine-readable report, enough on its own for any consumer. Policies and CI read this file.
+- **Plan**: what the dry run planned for this run.
+- **Job**: the namespace, Job name, the trial's own run id, exit code, attempts, and where the config and outputs are stored.
+
+Pod logs disappear when the Job expires. The report stays in the trial bucket.
+
+## Scanned versions
+
+A published version that a trial has finished against carries a **Scanned** badge, in **Discover** and in the dashboard's **Versions** list. Its colour follows the run's verdict policy: passed, warnings, failed, or partial when the run stopped early. With no policy, the badge just says **Scanned**. Studio does not invent a pass mark.
+
+- In **Discover**, open the agent and select **Security scan**. The tab follows the version picker, so each version shows its own result.
+- In **Versions**, select the badge to open the results under the version. Versions without a scan offer **Scan**, which opens the wizard with that version selected.
+
+The results show the violation rate, the injection success rate, the destructive actions the assistant attempted (none ran), coverage, the static scan findings, and why the policy ruled as it did. The latest finished run counts; smoke runs don't. A run's status is brought up to date from the cluster when you open the **Trials** list or the run itself, so the badge appears once someone has looked at a run that finished. **Full report** links to the run, but only for the workspace that ran it. Other workspaces see the headline numbers only.
+
+### Scans run elsewhere
+
+A trial doesn't have to run in this Studio. When a trial report is attached to the published version as an OCI referrer (by CI, another deployment, or a run here with `TRIAL_ATTACH_TO_ARTIFACT=on`), Studio reads it through the runtime and badges the version too. This works even where trials are turned off.
+
+Anyone who can push to the registry can attach a report, so the badge depends on the report's signature:
+
+| Signature | Badge |
+|---|---|
+| Verified | Coloured by the report's verdict, like a run in this Studio |
+| Not signed, or not checked by this deployment | **Unverified scan**, grey, with no verdict |
+| Doesn't match the configured key | Not shown |
+
+A scan run elsewhere carries only its verdict, the assistant, the models and the report's detail level. The numbers stay in the report itself, which you can fetch from the registry by the referrer digest shown under the results. When this Studio also ran the version, its own run is shown, unless a verified report is newer.
+
+<Note>
+New reports can take up to a minute to appear. The runtime caches each version's list for `REGISTRY_REFERRERS_CACHE_TTL_SECONDS`, 60 seconds by default.
+</Note>
